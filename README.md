@@ -5,7 +5,7 @@ SmartRotation is a minimalist dps rotation addon. \
 Provides optimized damage rotation using minimal display icons. \
 The rotation is derived from Simc's profiles to achieve maxmium dps. 
 
-Now supports: 
+Now supports: \
 Shadow Priest \
 Havoc Demon Hunter \
 Retribution Paladin \
