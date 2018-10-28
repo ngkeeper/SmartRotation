@@ -1,5 +1,5 @@
 # SmartRotation
-A wow add-on for maximizing dps. 
+A wow add-on to display optimal damage rotation. 
 
 SmartRotation is a minimalist dps rotation addon. \
 Provides optimized damage rotation using minimal display icons. \
