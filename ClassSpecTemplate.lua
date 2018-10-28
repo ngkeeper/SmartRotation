@@ -20,9 +20,9 @@ function ClassSpec:_new()
 	
 	local gcd_spell 	= 	 	-- can be any zero-cooldown spell
 	local buff_spell 	= { }	-- buffs (if need to be tracked)
-    local dot_spell 	= {	}	-- debuffs or dot spells
-    local cd_spell 		= {	}	-- spells with cd (if you want to know if that spell is on cd)
-    local casting_spell = {	}	-- non-instant spells (if you want to do something if that spell is being cast)
+	local dot_spell 	= {	}	-- debuffs or dot spells
+	local cd_spell 		= {	}	-- spells with cd (if you want to know if that spell is on cd)
+	local casting_spell = {	}	-- non-instant spells (if you want to do something if that spell is being cast)
 	local cleave_spell 	= { }	-- spells that have aoe/cleave effects, to determine how many targets are hit
 								-- do not list spells with high damage frequency, e.g. eye beam, comet storm, void eruptions
 	local other_spell 	= { }	-- reserved
