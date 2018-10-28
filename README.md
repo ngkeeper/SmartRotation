@@ -5,6 +5,12 @@ SmartRotation is a minimalist dps rotation addon. \
 Provides optimized damage rotation using minimal display icons. \
 The rotation is derived from Simc's profiles to achieve maxmium dps. 
 
+Now supports: 
+Shadow Priest
+Havoc Demon Hunter
+Retribution Paladin
+Frost Mage
+
 Files: \
 SmartRotation.lua:      Main program, creates Bliz UI interfaces \
 [ClassSpec].lua:        Base class of rotation for a certain spec, inherits PlayerRotation \
