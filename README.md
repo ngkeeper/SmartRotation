@@ -3,7 +3,7 @@ A wow add-on for maximizing dps.
 
 SmartRotation is a minimalist dps rotation addon. \
 Provides optimized damage rotation using minimal display icons. \
-The rotation is derived from Simc's profiles to achieve maxmium dps. \
+The rotation is derived from Simc's profiles to achieve maxmium dps. 
 
 Files: 
 SmartRotation.lua 		Main program, creates Bliz UI interfaces \
@@ -11,4 +11,4 @@ SmartRotation.lua 		Main program, creates Bliz UI interfaces \
 PlayerRotation.lua		Provides common features for a player \
 PlayerStatus.lua		Tracks buff, debuff, cd, etc. \
 CleaveLog.lua			Tests aoe and cleave status \
-LabeledMatrix.lua		Labeled matrices, to store player buff, debuff, cd, etc. \
+LabeledMatrix.lua		Labeled matrices, to store player buff, debuff, cd, etc. 
