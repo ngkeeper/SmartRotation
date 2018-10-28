@@ -1,0 +1,16 @@
+## Interface: 80000
+## Title: SmartRotation
+## Version: 0.0.2
+## Notes: DPS Rotation Icon.
+## SavedVariablesPerCharacter: SIZE, X, Y
+
+libs\LibRangeCheck-2.0\LibRangeCheck-2.0.lua
+CleaveLog.lua
+LabeledMatrix.lua
+PlayerStatus.lua
+PlayerRotation.lua
+PriestShadow.lua
+DemonhunterHavoc.lua
+PaladinRetribution.lua
+MageFrost.lua
+SmartRotation.lua
