@@ -108,6 +108,8 @@ function PriestShadow: nextSpell()
 	local is_aoe = self.player:isAOE()
 	local talent_misery = (self.talent[3] == 2)
 	local talent_dark_void = (self.talent[3] == 3)
+	local talent_legacy_of_the_void = (self.talent[7] == 1)
+	local insanity = self.player: getPower()
 	
 	if talent_misery then 
 		self.player: setAOEThreshold(7)
@@ -135,7 +137,9 @@ function PriestShadow: nextSpell()
 	local charge_shadow_word_death = self.player:getSpellCharge(32379)	--"Shadow Word: Death"
 	local casting_void_eruption = self.player: isSpellCasting(228260)	--"Void Eruption"
 	local casting_dark_void = self.player: isSpellCasting(263346)	--"Dark Void"
+	local casting_mind_blast = self.player: isSpellCasting(8092)	--"Mind Blast"
 
+	insanity = insanity + (casting_dark_void and 30 or 0) + (casting_mind_blast and 14 or 0)
 	-- self:setAction(spell, conditions, [optional]): 
 	-- modifies self.next_spell if all conditions are met
 	-- returns self.next_spell, or a nil value if spell is not usable or conditions are not met
@@ -148,7 +152,8 @@ function PriestShadow: nextSpell()
 	
 	local void_eruption_action, dark_ascension_action, mindbender_action 	
 	local void_eruption_usable, dark_ascension_usable, mindbender_usable 	
-	void_eruption_usable = self: setAction(228260, true, 1)	--"Void Eruption"
+	--void_eruption_usable = self: setAction(228260, true, 1)	--"Void Eruption"
+	void_eruption_usable = insanity >= (talent_legacy_of_the_void and 60 or 90)
 	dark_ascension_usable = self: setAction(280711, true, 1)	--"Dark Ascension"
 	mindbender_usable = self: setAction(200174, true, 1)	--"Mindbender"
 	
@@ -157,7 +162,7 @@ function PriestShadow: nextSpell()
 	
 	if is_aoe then 
 		-- simc: actions.aoe
-		void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 10}, 1)	--"Void Eruption"
+		_, _, void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 10}, 1)	--"Void Eruption"
 		dark_ascension_action = self: setAction(280711, {not(buff_voidform), not(casting_void_eruption),  time_to_kill > 10}, 1 )	--"Dark Ascension"
 		self: setAction(228266, {buff_voidform or casting_void_eruption, dot_remain_shadow_word_pain > 1})	--"Void Bolt"
 		self: setAction(263346, not(adds_coming) )	--"Dark Void"
@@ -167,7 +172,7 @@ function PriestShadow: nextSpell()
 		self: setAction(589)	--"Shadow Word: Pain"
 	elseif is_cleave then 
 		--simc: actions.cleave
-		void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 15}, 1 )	--"Void Eruption"
+		_, _, void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 15}, 1 )	--"Void Eruption"
 		dark_ascension_action = self: setAction(280711, {not(buff_voidform), not(casting_void_eruption),  time_to_kill > 15}, 1 )	--"Dark Ascension"
 		self: setAction(228266, (buff_voidform or casting_void_eruption) )	--"Void Bolt"
 		self: setAction(32379, time_to_kill < 3 or not(buff_voidform) )	--"Shadow Word: Death"
@@ -187,7 +192,7 @@ function PriestShadow: nextSpell()
 		self: setAction(589)	--"Shadow Word: Pain"
 	else
 		-- simc: actions.single
-		void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 15}, 1 )	--"Void Eruption"
+		_, _, void_eruption_action = self: setAction(228260, {not(buff_voidform), time_to_kill > 15}, 1 )	--"Void Eruption"
 		dark_ascension_action = self: setAction(280711, {not(buff_voidform), not(casting_void_eruption),  time_to_kill > 15}, 1 )	--"Dark Ascension"
 		self: setAction(228266, (buff_voidform or casting_void_eruption) )	--"Void Bolt"
 		self: setAction(32379, time_to_kill < 3 or charge_shadow_word_death == 2 or ( charge_shadow_word_death == 1 and cd_shadow_word_death < gcd ))	--"Shadow Word: Death"
@@ -217,11 +222,11 @@ function PriestShadow: nextSpell()
 		self.button_void_eruption: Hide()
 	end
 	if not(buff_voidform) then 
-		if void_eruption_action then 
+		if void_eruption_usable and void_eruption_action then 
 			self.button_void_eruption: Show()
 			self.button_void_eruption.icon: SetTexture(GetSpellTexture(228260))	--"Void Eruption"
 			ActionButton_ShowOverlayGlow(self.button_void_eruption)
-		elseif dark_ascension_action then
+		elseif dark_ascension_usable and dark_ascension_action then
 			self.button_void_eruption: Show()
 			self.button_void_eruption.icon: SetTexture(GetSpellTexture(280711))	--"Dark Ascension"
 			ActionButton_ShowOverlayGlow(self.button_void_eruption)

@@ -217,8 +217,26 @@ function PlayerStatus: timeToKill(unit)
 	local hp_target = UnitHealth(target)
 	if not(UnitCanAttack("player","target")) or not(UnitExists("target")) then hp_target = 0 end
 	local group_size = math.max(1, GetNumGroupMembers())
-	
-	self.time_to_kill = hp_target / (self.one_man_dps * group_size)
+	local n_dps = 0
+	if IsInGroup() then 
+		local group = IsInRaid() and "raid" or "party"
+		local unitid = GetNumGroupMembers()
+		if group == "party" then 	
+			unitid = unitid - 1 -- party1-4 does not include player
+			n_dps = n_dps + 1	-- assume player is always dps (otherwise he doesn't need this addon)
+		end
+		for i = 1, unitid do
+			local member = group..i
+			local role = UnitGroupRolesAssigned(member)
+			local distanceSquared, checkedDistance = UnitDistanceSquared(member)
+			local notFarAway = (distanceSquared ^ 0.5 <= 60) and checkedDistance
+			if role == "DAMAGER" and notFarAway then n_dps = n_dps + 1 end
+			if role == "TANK" and notFarAway then n_dps = n_dps + 0.5 end
+        end
+	end
+	n_dps = math.max(1, n_dps)
+	--print(n_dps)
+	self.time_to_kill = hp_target / (self.one_man_dps * n_dps)
 	return self.time_to_kill
 end
 

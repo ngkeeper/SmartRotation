@@ -301,8 +301,10 @@ function MageFrost: nextSpell()
 	-- end
 	if UnitExists("pet") or talent_lonely_winter then
 		self.button_cd3.icon: SetTexture(GetSpellTexture(12472))
+		ActionButton_HideOverlayGlow(self.button_cd3)
 	else 
 		self.button_cd3.icon: SetTexture(GetSpellTexture(31687))
+		ActionButton_ShowOverlayGlow(self.button_cd3)
 	end
 	if fo_action then 
 		ActionButton_ShowOverlayGlow(self.button_cd1)
