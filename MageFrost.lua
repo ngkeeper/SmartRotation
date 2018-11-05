@@ -70,6 +70,9 @@ function MageFrost:_new()
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets, single_target_dps)
 	
 	self.player: setCleaveTimeout(3, 3)
+	self.pet_exists = false;
+	self.on_flying_mount = false;
+	
 	--self.enabled = false
 	
 	-- the main icon is included in PlayerRotation class
@@ -89,6 +92,7 @@ function MageFrost:_new()
 	self.cooldown_cd1: SetAllPoints(self.button_cd1)
 	self.cooldown_cd1: SetDrawEdge(false)
 	self.cooldown_cd1: SetSwipeColor(1, 1, 1, .85)
+	self.cooldown_cd1:SetHideCountdownNumbers(false)
 	
 	self.button_cd2 = CreateFrame("Button", "SR_comet_storm", UIParent, "ActionButtonTemplate")
 	self.button_cd2: Disable()
@@ -99,6 +103,7 @@ function MageFrost:_new()
 	self.cooldown_cd2: SetAllPoints(self.button_cd2)
 	self.cooldown_cd2: SetDrawEdge(false)
 	self.cooldown_cd2: SetSwipeColor(1, 1, 1, .85)
+	self.cooldown_cd2:SetHideCountdownNumbers(false)
 	
 	self.button_cd3 = CreateFrame("Button", "SR_icy_vein", UIParent, "ActionButtonTemplate")
 	self.button_cd3: Disable()
@@ -109,6 +114,7 @@ function MageFrost:_new()
 	self.cooldown_cd3: SetAllPoints(self.button_cd3)
 	self.cooldown_cd3: SetDrawEdge(false)
 	self.cooldown_cd3: SetSwipeColor(1, 1, 1, .85)
+	self.cooldown_cd3:SetHideCountdownNumbers(false)
 	
 	self.overlay_cd3 = self.button_cd3:CreateTexture("SR_icy_vein_overlay")
 	self.overlay_cd3:SetAllPoints(self.button_cd3)
@@ -123,6 +129,7 @@ function MageFrost:_new()
 	self.cooldown_cd4: SetAllPoints(self.button_cd4)
 	self.cooldown_cd4: SetDrawEdge(false)
 	self.cooldown_cd4: SetSwipeColor(1, 1, 1, .85)
+	self.cooldown_cd4:SetHideCountdownNumbers(false)
 	
 	self:setSize(60)
 end
@@ -130,6 +137,7 @@ function MageFrost: setSize(size)
 	PlayerRotation:setSize(size)
 	self.size = size or self.size
 	self.ui_ratio = self.size / 50
+	
 	self.button_cd1: SetSize(self.size * 0.65,self.size * 0.65)
 	self.button_cd2: SetSize(self.size * 0.65, self.size * 0.65)
 	self.button_cd3: SetSize(self.size * 0.65, self.size * 0.65)
@@ -138,6 +146,11 @@ function MageFrost: setSize(size)
 	self.button_cd2: SetPoint("CENTER", self.anchor_x + 25 * self.ui_ratio, self.anchor_y + 50 * self.ui_ratio)
 	self.button_cd3: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y )
 	self.button_cd4: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y )
+	
+	local talent_comet_storm = (self.talent[6] == 3)
+	if not talent_comet_storm then 
+		self.button_cd1: SetPoint("CENTER", self.anchor_x, self.anchor_y + 50 * self.ui_ratio)
+	end
 end	
 function MageFrost: setPosition(x, y)
 	PlayerRotation:setPosition(x, y)
@@ -163,6 +176,10 @@ function MageFrost: nextSpell()
 	if not(self.enabled) then 
 		return nil
 	end
+	
+	self.on_flying_mount = IsFlying() or self.on_flying_mount and IsMounted()
+	self.pet_exists = UnitExists("pet") and not(self.on_flying_mount) or self.pet_exists and self.on_flying_mount
+	
 	local adds_coming = false	-- there's no way to predict if adds are coming
 	local gcd = self.player:getGCD()
 	local time_to_kill = self.player:timeToKill()
@@ -299,7 +316,8 @@ function MageFrost: nextSpell()
 	-- else
 		-- self.button_cd2: Hide()
 	-- end
-	if UnitExists("pet") or talent_lonely_winter then
+	local hide_pet_icon = self.pet_exists or talent_lonely_winter
+	if hide_pet_icon then
 		self.button_cd3.icon: SetTexture(GetSpellTexture(12472))
 		ActionButton_HideOverlayGlow(self.button_cd3)
 	else 

@@ -81,12 +81,12 @@ fLogin: RegisterEvent("PLAYER_LOGIN")
 fLogin: SetScript("OnEvent", function(self, event, ...)
 end)
 
--- talent events
-local fTalent = CreateFrame("Frame")
-fTalent: RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-fTalent: RegisterEvent("PLAYER_TALENT_UPDATE")
-
-fTalent: SetScript("OnEvent", function(self, event, ...)
+-- update events
+local fUpdate = CreateFrame("Frame")
+fUpdate: RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+fUpdate: RegisterEvent("PLAYER_TALENT_UPDATE")
+--fUpdate: RegisterEvent("UPDATE_ALL_UI_WIDGETS")
+fUpdate: SetScript("OnEvent", function(self, event, ...)
 	player = createPlayer(player, enabled)
 	if player then
 		player: updateTalent()

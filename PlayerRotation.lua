@@ -18,6 +18,7 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.next_spell_trigger = false
 	self.next_spell_on_focus = false
 	self.talent = {}
+	self:updateTalent()
 	
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -161,6 +162,11 @@ function PlayerRotation: setAction(spell, conditions, push)
 end
 function PlayerRotation: setActionFocus(spell, conditions, nospellcheck)
 	if not self.next_spell_trigger then return nil end
+	
+	local guid_target = UnitGUID("target")
+	local guid_focus = UnitGUID("focus")
+	if not(guid_focus) or guid_focus == guid_target then return nil end
+	
 	local _, instance = GetInstanceInfo()
 	if instance == "arena" then return nil end
 	if not UnitCanAttack("player", "focus") then return false end

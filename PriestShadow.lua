@@ -62,27 +62,34 @@ function PriestShadow:_new()
 	
 	-- create icons for major cd display
 	self.button_mindbender = CreateFrame("Button", "SR_button_mindbender", UIParent, "ActionButtonTemplate")
-	self.button_mindbender: SetPoint("CENTER", self.anchor_x + 50, self.anchor_y )
 	self.button_mindbender: Disable()
-	self.button_mindbender: SetSize(40,40)
 	self.button_mindbender: SetNormalTexture(self.button_mindbender: GetHighlightTexture())
 	self.button_mindbender.icon: SetTexture(GetSpellTexture(200174))
 	self.button_mindbender:Hide()
 	
 	self.button_void_eruption = CreateFrame("Button", "SR_button_void_eruption", UIParent, "ActionButtonTemplate")
-	self.button_void_eruption: SetPoint("CENTER", self.anchor_x - 50, self.anchor_y )
 	self.button_void_eruption: Disable()
-	self.button_void_eruption: SetSize(40,40)
 	self.button_void_eruption: SetNormalTexture(self.button_void_eruption: GetHighlightTexture())
 	self.button_void_eruption.icon: SetTexture(GetSpellTexture(228260))
 	self.button_void_eruption:Hide()
+	
+	self:setSize()
 end
+function PriestShadow: setSize(size)
+	PlayerRotation:setSize(size)
+	self.size = size or self.size
+	self.ui_ratio = self.size / 50
+	
+	self.button_mindbender: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button_void_eruption: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button_mindbender: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y )
+	self.button_void_eruption: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y )
+end	
 function PriestShadow: setPosition(x, y)
-	if x and y then
-		PlayerRotation:setPosition(x, y)
-		self.button_void_eruption: SetPoint("CENTER", -50 + x, y)
-		self.button_mindbender: SetPoint("CENTER", 50 + x, y)
-	end
+	PlayerRotation:setPosition(x, y)
+	self.anchor_x = x or self.anchor_x
+	self.anchor_y = y or self.anchor_y
+	self:setSize()
 end
 function PriestShadow: enable()
 	self.button_void_eruption: Show()
