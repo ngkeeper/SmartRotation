@@ -98,8 +98,10 @@ function PlayerRotation: updateIcon()
 	if self.enabled and self.next_spell then 
 		self.button.icon: SetTexture(GetSpellTexture(self.next_spell))
 		self.button: Show()
-		if IsSpellInRange(select(1, GetSpellInfo(self.next_spell)), "target") == 0 then 
-			overlay_color = 1
+		if UnitExists("target") then 
+			if IsSpellInRange(select(1, GetSpellInfo(self.next_spell)), "target") == 0 then 
+				overlay_color = 1
+			end
 		end
 	else
 		self.button: Hide()

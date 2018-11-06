@@ -12,7 +12,7 @@ setmetatable(PaladinRetribution, {
 function PaladinRetribution:_new()
 	-- all spells are case-sensitive
 	-- (this will be improved in the future)
-	local gcd_spell 	= 	85256 		--"Shadow Word: Pain"    -- can be any zero-cooldown spell
+	local gcd_spell 	= 	85256 		--"Templar's Verdict"    -- can be any zero-cooldown spell
 	local buff_spell 	= { 31884,		--"Avenging Wrath"
 							84963,		--"Inquisition"
 							231895, 	--"Crusade"

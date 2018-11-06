@@ -177,6 +177,7 @@ function MageFrost: nextSpell()
 		return nil
 	end
 	
+	
 	self.on_flying_mount = IsFlying() or self.on_flying_mount and IsMounted()
 	self.pet_exists = UnitExists("pet") and not(self.on_flying_mount) or self.pet_exists and self.on_flying_mount
 	
