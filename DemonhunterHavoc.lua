@@ -197,7 +197,7 @@ function DemonhunterHavoc: nextSpell()
 	self:setAction(258925, is_cleave) -- "Fel Barrage"
 	self:setAction(210152, {buff_metamorphosis, blade_dance}) -- "Death Sweep"
 	self:setAction(198013, is_cleave or not(adds_coming)) --"Eye Beam"
-	self:setAction(188499, {blade_dance, cd_eye_beam > 5}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
+	--self:setAction(188499, {blade_dance, cd_eye_beam > 5}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
 	self:setAction(258920) -- "Immolation Aura"
 	self:setAction(232893, fury < 40 or ( not(buff_metamorphosis) and fury_deficit >= 40 )) -- "Felblade"
 	self:setAction(201427, {buff_metamorphosis, talent_blind_fury or fury_deficit < 30 or buff_remain_metamorphosis < 5, not(pooling_for_blade_dance)}) -- "Annihilation"
@@ -216,7 +216,7 @@ function DemonhunterHavoc: nextSpell()
 	self:setAction(188499, {blade_dance}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
 	self:setAction(232893, fury < 40 or ( not(buff_metamorphosis) and fury_deficit >= 40 )) -- "Felblade"
 	self:setAction(201427, {buff_metamorphosis, talent_blind_fury or fury_deficit < 30 or buff_remain_metamorphosis < 5, not(pooling_for_blade_dance)}) -- "Annihilation"
-	self:setAction(162794, {talent_blind_fury or fury_deficit < 30, not(pooling_for_meta), not(pooling_for_blade_dance)}) -- "Chaos Strike"
+	self:setAction(162794, {talent_blind_fury or fury_deficit < 30, not(pooling_for_blade_dance)}) -- "Chaos Strike"
 	self:setAction(162243) -- "Demon's Bite"
 	
 	local secondary_spell = self.next_spell
