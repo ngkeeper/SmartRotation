@@ -44,8 +44,7 @@ function PaladinRetribution:_new()
 						  }
 	local cleave_targets = 2
 	local aoe_targets = 3
-	local single_target_dps = 8000
-	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets, single_target_dps)
+	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	self.player:setPowerType(9) -- 9 is holy power
 	--self.enabled = false
 	
@@ -57,36 +56,41 @@ function PaladinRetribution:_new()
 	self.hightlight_aoe = false
 	
 	self.button_cd1 = CreateFrame("Button", "SR_button_mindbender", UIParent, "ActionButtonTemplate")
-	self.button_cd1: SetPoint("CENTER", self.anchor_x - 50, self.anchor_y )
 	self.button_cd1: Disable()
-	self.button_cd1: SetSize(40,40)
 	self.button_cd1: SetNormalTexture(self.button_cd1: GetHighlightTexture())
 	self.button_cd1.icon: SetTexture(GetSpellTexture(184662))
 	self.button_cd1:Hide()
 	
 	self.button_cd2 = CreateFrame("Button", "SR_button_void_eruption", UIParent, "ActionButtonTemplate")
-	self.button_cd2: SetPoint("CENTER", self.anchor_x + 50, self.anchor_y )
 	self.button_cd2: Disable()
-	self.button_cd2: SetSize(40,40)
 	self.button_cd2: SetNormalTexture(self.button_cd2: GetHighlightTexture())
 	self.button_cd2.icon: SetTexture(GetSpellTexture(31884))
 	self.button_cd2:Hide()
 	
 	self.button_cd3 = CreateFrame("Button", "SR_button_void_eruption", UIParent, "ActionButtonTemplate")
-	self.button_cd3: SetPoint("CENTER", self.anchor_x, self.anchor_y + 50)
 	self.button_cd3: Disable()
-	self.button_cd3: SetSize(40,40)
 	self.button_cd3: SetNormalTexture(self.button_cd3: GetHighlightTexture())
 	self.button_cd3.icon: SetTexture(GetSpellTexture(255937))
 	self.button_cd3:Hide()
+	
+	self:setSize()
 end
+function PaladinRetribution: setSize(size)
+	PlayerRotation:setSize(size)
+	self.size = size or self.size
+	self.ui_ratio = self.size / 50
+	self.button_cd1: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button_cd2: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button_cd3: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button_cd1: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y)
+	self.button_cd2: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y)
+	self.button_cd3: SetPoint("CENTER", self.anchor_x, self.anchor_y + 50 * self.ui_ratio)
+end	
 function PaladinRetribution: setPosition(x, y)
-	if x and y then
-		PlayerRotation:setPosition(x, y)
-		self.button_cd1: SetPoint("CENTER", x - 50, y)
-		self.button_cd2: SetPoint("CENTER", x + 50, y)
-		self.button_cd3: SetPoint("CENTER", x, y + 50)
-	end
+	PlayerRotation:setPosition(x, y)
+	self.anchor_x = x or self.anchor_x
+	self.anchor_y = y or self.anchor_y
+	self:setSize()
 end
 function PaladinRetribution: enable()
 	self.button_cd1: Show()
@@ -230,7 +234,7 @@ function PaladinRetribution: nextSpell()
 		self.button_cd3: Hide()
 	end
 	
-	if DEBUG > 0 then
+	if DEBUG > 4 then
 		print("SR: Priest Shadow module")
 		print("SR: Enabled: ".. tostring(self.enabled))
 		print("SR: Next spell: ".. tostring(self.next_spell))

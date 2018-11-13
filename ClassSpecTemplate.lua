@@ -29,9 +29,8 @@ function ClassSpec:_new()
 	
 	local cleave_targets = 2	-- threshold for "cleave" status
 	local aoe_targets = 4		-- threshold for "aoe" status
-	local single_target_dps = 8000	-- used for time-to-kill estimation, low time-to-kill will stall using major cooldown
 	
-	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets, single_target_dps)
+	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
 	self.player: setCleaveTimeout(3, 3)	-- how fast (cleave, aoe) status dies out. 
 										-- E.g. 3 seconds after last cleave hit, single target sequence is executed

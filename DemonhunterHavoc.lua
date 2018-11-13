@@ -49,7 +49,6 @@ function DemonhunterHavoc:_new()
 						  }
 	local cleave_targets = 3
 	local aoe_targets = 3
-	local single_target_dps = 1500
 	
 	-- for i = 1, 40 do
         -- local ub_name, _, ub_stack, _, _, ub_expiration, _, _, _, ub_spell_id = UnitBuff("player", i)
@@ -58,7 +57,7 @@ function DemonhunterHavoc:_new()
         -- end    
     -- end
 	
-	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets, single_target_dps)
+	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	--self.enabled = false
 	-- the main icon is included in PlayerRotation class
 	self.anchor_x = 0
@@ -67,21 +66,37 @@ function DemonhunterHavoc:_new()
 	self.hightlight_aoe = false
 	
 	-- create icons for major cd display
-	self.button2 = CreateFrame("Button", "SR_main_button", UIParent, "ActionButtonTemplate")
-	self.button2: SetPoint("CENTER", self.anchor_x, self.anchor_y + 55)
+	self.button2 = CreateFrame("Button", "SR_metaphorsis", UIParent, "ActionButtonTemplate")
 	self.button2: Disable()
-	self.button2: SetSize(40,40)
 	self.button2: SetNormalTexture(self.button2: GetHighlightTexture())
 	self.button2.icon: SetTexture(GetSpellTexture(191427))
-	self.button2:Hide()
+	self.button2: Hide()
+	
+	self.button3 = CreateFrame("Button", "SR_secondary_button", UIParent, "ActionButtonTemplate")
+	self.button3: Disable()
+	self.button3: SetNormalTexture(self.button3: GetHighlightTexture())
+	self.button3: Hide()
+	
+	self.overlay3 = self.button:CreateTexture("SR_secondary_button_overlay")
+	self.overlay3:SetAllPoints(self.button3)
+	self.overlay3:SetColorTexture(.5, .5, 0, 0)
+	
+	self:setSize()
 end
+function DemonhunterHavoc: setSize(size)
+	PlayerRotation:setSize(size)
+	self.size = size or self.size
+	self.ui_ratio = self.size / 50
+	self.button2: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button3: SetSize(self.size * 0.65,self.size * 0.65)
+	self.button2: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y)
+	self.button3: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y)
+end	
 function DemonhunterHavoc: setPosition(x, y)
-	if x and y then 
-		self.anchor_x = x
-		self.anchor_y = y
-		PlayerRotation:setPosition(x, y)
-		self.button2: SetPoint("CENTER", x, y + 55)
-	end
+	PlayerRotation:setPosition(x, y)
+	self.anchor_x = x or self.anchor_x
+	self.anchor_y = y or self.anchor_y
+	self:setSize()
 end
 function DemonhunterHavoc: enable()
 	PlayerRotation: enable()
@@ -192,11 +207,25 @@ function DemonhunterHavoc: nextSpell()
 	
 	self:setAction(162243) -- "Demon's Bite"
 	
+	local main_spell = self.next_spell
+	self.next_spell = nil
+	self.next_spell_trigger = true
+	
+	-- secondary icon, using no major cds
+	self:setAction(210152, {buff_metamorphosis, blade_dance}) -- "Death Sweep"
+	self:setAction(188499, {blade_dance}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
+	self:setAction(232893, fury < 40 or ( not(buff_metamorphosis) and fury_deficit >= 40 )) -- "Felblade"
+	self:setAction(201427, {buff_metamorphosis, talent_blind_fury or fury_deficit < 30 or buff_remain_metamorphosis < 5, not(pooling_for_blade_dance)}) -- "Annihilation"
+	self:setAction(162794, {talent_blind_fury or fury_deficit < 30, not(pooling_for_meta), not(pooling_for_blade_dance)}) -- "Chaos Strike"
+	self:setAction(162243) -- "Demon's Bite"
+	
+	local secondary_spell = self.next_spell
+	self.next_spell = main_spell
 	
 	----------------------
 	-- display the results
 	self:updateIcon()
-	
+	self:updateIcon(self.button3, self.overlay3, secondary_spell)
 	if meta then 
 		self.button2:Show()
 		if meta1 or meta2 then 
@@ -211,7 +240,7 @@ function DemonhunterHavoc: nextSpell()
 
 	--print(self.player: getLastCast())
 	--print(self.player: getLastCastTime())
-	if DEBUG > 0 then
+	if DEBUG > 4 then
 		print("SR: Priest Shadow module")
 		print("SR: Enabled: ".. tostring(self.enabled))
 		print("SR: Next spell: ".. tostring(self.next_spell))

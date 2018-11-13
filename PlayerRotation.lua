@@ -34,7 +34,7 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.button: Show()
 	
 	self.text = self.button:CreateFontString("SR_main_button_text","OVERLAY")
-	self.text:SetFont("Fonts\\FRIZQT__.ttf", 16, "THICKOUTLINE")
+	self.text:SetFont("Fonts\\FRIZQT__.ttf", 24, "THICKOUTLINE")
 	self.text:SetTextColor(1, 1, 1)
 	self.text:SetPoint("CENTER",self.anchor_x, self.anchor_y)
 	self.text:SetText("")
@@ -92,37 +92,49 @@ function PlayerRotation: updateTalent()
 		self.talent[i] = column
 	end
 end
-function PlayerRotation: updateIcon()
+function PlayerRotation: updateIcon(button, overlay, spell)
+	overlay = overlay or (not(button) and self.overlay)
+	size = not(button) and self.size
+	button = button or self.button
+	spell = spell or self.next_spell
 	
 	local overlay_color = 0
-	if self.enabled and self.next_spell then 
-		self.button.icon: SetTexture(GetSpellTexture(self.next_spell))
-		self.button: Show()
-		if UnitExists("target") then 
-			if IsSpellInRange(select(1, GetSpellInfo(self.next_spell)), "target") == 0 then 
-				overlay_color = 1
+	if self.enabled and spell then 
+		button.icon: SetTexture(GetSpellTexture(spell))
+		button: Show()
+		if UnitCanAttack("player", "target") then 
+			local spellname = select(1, GetSpellInfo(spell))
+			if spellname then 
+				overlay_color = ((IsSpellInRange(spellname, "target") == 0) and 1) or 0
 			end
 		end
 	else
-		self.button: Hide()
+		button: Hide()
 	end
-	local large_aoe_icon = self.highlight_aoe or false
-	if self.player:isCleave() and large_aoe_icon then 
-		self.button: SetSize(self.size * 1.2,self.size * 1.2)
-	else	
-		self.button: SetSize(self.size,self.size)
-	end
-	
+	if size then 
+		local large_aoe_icon = self.highlight_aoe or false
+		if self.player:isCleave() and large_aoe_icon then 
+			button: SetSize(self.size * 1.2,self.size * 1.2)
+		else	
+			button: SetSize(self.size,self.size)
+		end
+	end 
 	if self.next_spell_on_focus then 
 		--self.text:SetText("")
 		overlay_color = 2
 	end
-	if overlay_color == 0 then 
-		self.overlay:SetColorTexture(0, 0, 0, 0)
-	elseif overlay_color == 1 then 
-		self.overlay:SetColorTexture(.5, 0, 0, .5)
-	elseif overlay_color == 2 then 
-		self.overlay:SetColorTexture(.5, .5, 0, .4)
+	if overlay then 	
+		if overlay_color == 0 then 
+			overlay:SetColorTexture(0, 0, 0, 0)
+		elseif overlay_color == 1 then 
+			overlay:SetColorTexture(.5, 0, 0, .5)
+		elseif overlay_color == 2 then 
+			overlay:SetColorTexture(.5, .5, 0, .4)
+		end
+	end
+	
+	if DEBUG > 0 then 
+		self.text:SetText(tostring(math.ceil(self.player: timeToKill())))
 	end
 end
 function PlayerRotation: getRange(unit)

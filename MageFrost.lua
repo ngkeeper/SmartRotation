@@ -66,8 +66,7 @@ function MageFrost:_new()
 	
 	local cleave_targets = 2
 	local aoe_targets = 4
-	local single_target_dps = 8000
-	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets, single_target_dps)
+	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
 	self.player: setCleaveTimeout(3, 3)
 	self.pet_exists = false;
@@ -323,7 +322,9 @@ function MageFrost: nextSpell()
 		ActionButton_HideOverlayGlow(self.button_cd3)
 	else 
 		self.button_cd3.icon: SetTexture(GetSpellTexture(31687))
-		ActionButton_ShowOverlayGlow(self.button_cd3)
+		if IsUsableSpell(31687) then 
+			ActionButton_ShowOverlayGlow(self.button_cd3)
+		end
 	end
 	if fo_action then 
 		ActionButton_ShowOverlayGlow(self.button_cd1)
@@ -374,7 +375,7 @@ function MageFrost: nextSpell()
 	else
 		self.overlay_cd3:SetColorTexture(0, .5, 0, 0)
 	end
-	if DEBUG > 0 then
+	if DEBUG > 4 then
 		print("SR: Mage frost module")
 		print("SR: Enabled: ".. tostring(self.enabled))
 		print("SR: Next spell: ".. tostring(self.next_spell))
