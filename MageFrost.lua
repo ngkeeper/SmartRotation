@@ -272,7 +272,8 @@ function MageFrost: nextSpell()
 		self:setAction(44614, {not(talent_glacial_spike), (casting_ebonbolt or last_cast == 257537)
 			or (last_cast == 116 and buff_brain_freeze) })	-- flurry
 		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, 
-			(casting_glacial_spike or last_cast == 199786) or (casting_ebonbolt or last_cast == 257537) or 
+			(casting_glacial_spike or last_cast == 199786) or 
+			( (casting_ebonbolt or last_cast == 257537) and buff_stack_icicles < 4 ) or 
 			(last_cast == 116 and buff_stack_icicles < 4) })	-- flurry
 		fo_action = self:setAction(84714, time_to_kill > 15, 1)	-- frozen orb
 		self:setAction(190356, {is_cleave, buff_freezing_rain, buff_stack_fingers_of_frost < 2})	-- blizzard
