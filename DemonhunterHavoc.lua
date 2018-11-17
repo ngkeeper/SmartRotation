@@ -58,6 +58,8 @@ function DemonhunterHavoc:_new()
     -- end
 	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
+	self.player: setCleaveTimeout(6, 6)
+	self.player: setPredictAll(true)
 	--self.enabled = false
 	-- the main icon is included in PlayerRotation class
 	self.anchor_x = 0
@@ -66,19 +68,29 @@ function DemonhunterHavoc:_new()
 	self.hightlight_aoe = false
 	
 	-- create icons for major cd display
-	self.button2 = CreateFrame("Button", "SR_metaphorsis", UIParent, "ActionButtonTemplate")
-	self.button2: Disable()
-	self.button2: SetNormalTexture(self.button2: GetHighlightTexture())
-	self.button2.icon: SetTexture(GetSpellTexture(191427))
-	self.button2: Hide()
+	self.button_meta = CreateFrame("Button", "SR_metaphorsis", UIParent, "ActionButtonTemplate")
+	self.button_meta: Disable()
+	self.button_meta: SetNormalTexture(self.button_meta: GetHighlightTexture())
+	self.button_meta.icon: SetTexture(GetSpellTexture(191427))
+	self.button_meta: Hide()
 	
-	self.button3 = CreateFrame("Button", "SR_secondary_button", UIParent, "ActionButtonTemplate")
-	self.button3: Disable()
-	self.button3: SetNormalTexture(self.button3: GetHighlightTexture())
-	self.button3: Hide()
+	self.cooldown_meta = CreateFrame("Cooldown", "SR_metaphorsis_cd", self.button_meta, "CooldownFrameTemplate")
+	self.cooldown_meta: SetAllPoints(self.button_meta)
+	self.cooldown_meta: SetDrawEdge(false)
+	self.cooldown_meta: SetSwipeColor(1, 1, 1, .85)
+	self.cooldown_meta:SetHideCountdownNumbers(false)
+	
+	self.overlay_meta = self.button_meta:CreateTexture("SR_icy_vein_overlay")
+	self.overlay_meta:SetAllPoints(self.button_meta)
+	self.overlay_meta:SetColorTexture(0, .5, 0, 0)
+	
+	self.button_nocd = CreateFrame("Button", "SR_secondary_button", UIParent, "ActionButtonTemplate")
+	self.button_nocd: Disable()
+	self.button_nocd: SetNormalTexture(self.button_nocd: GetHighlightTexture())
+	self.button_nocd: Hide()
 	
 	self.overlay3 = self.button:CreateTexture("SR_secondary_button_overlay")
-	self.overlay3:SetAllPoints(self.button3)
+	self.overlay3:SetAllPoints(self.button_nocd)
 	self.overlay3:SetColorTexture(.5, .5, 0, 0)
 	
 	self:setSize()
@@ -87,10 +99,10 @@ function DemonhunterHavoc: setSize(size)
 	PlayerRotation:setSize(size)
 	self.size = size or self.size
 	self.ui_ratio = self.size / 50
-	self.button2: SetSize(self.size * 0.65,self.size * 0.65)
-	self.button3: SetSize(self.size * 0.65,self.size * 0.65)
-	self.button2: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y)
-	self.button3: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y)
+	self.button_meta: SetSize(self.size * 0.75,self.size * 0.75)
+	self.button_nocd: SetSize(self.size * 0.75,self.size * 0.75)
+	self.button_meta: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y)
+	self.button_nocd: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y)
 end	
 function DemonhunterHavoc: setPosition(x, y)
 	PlayerRotation:setPosition(x, y)
@@ -100,11 +112,13 @@ function DemonhunterHavoc: setPosition(x, y)
 end
 function DemonhunterHavoc: enable()
 	PlayerRotation: enable()
-	self.button2: Show()
+	self.button_meta: Show()
+	self.button_nocd: Show()
 end
 function DemonhunterHavoc: disable()
 	PlayerRotation: disable()
-	self.button2: Hide()
+	self.button_meta: Hide()
+	self.button_nocd: Hide()
 end
 function DemonhunterHavoc: nextSpell()
 	-- for i = 1, 40 do
@@ -115,7 +129,7 @@ function DemonhunterHavoc: nextSpell()
     -- end
 	--print(self.player:isBuffUp(162264))
 	if not(self.enabled) then 
-		--self.button2:Hide()
+		--self.button_meta:Hide()
 		return nil
 	end
 		
@@ -197,7 +211,7 @@ function DemonhunterHavoc: nextSpell()
 	self:setAction(258925, is_cleave) -- "Fel Barrage"
 	self:setAction(210152, {buff_metamorphosis, blade_dance}) -- "Death Sweep"
 	self:setAction(198013, is_cleave or not(adds_coming)) --"Eye Beam"
-	--self:setAction(188499, {blade_dance, cd_eye_beam > 5}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
+	self:setAction(188499, {blade_dance, cd_eye_beam > 5}) -- "Blade Dance", removed "not(ready_metamorphosis)" to for manual meta
 	self:setAction(258920) -- "Immolation Aura"
 	self:setAction(232893, fury < 40 or ( not(buff_metamorphosis) and fury_deficit >= 40 )) -- "Felblade"
 	self:setAction(201427, {buff_metamorphosis, talent_blind_fury or fury_deficit < 30 or buff_remain_metamorphosis < 5, not(pooling_for_blade_dance)}) -- "Annihilation"
@@ -225,19 +239,27 @@ function DemonhunterHavoc: nextSpell()
 	----------------------
 	-- display the results
 	self:updateIcon()
-	self:updateIcon(self.button3, self.overlay3, secondary_spell)
-	if meta then 
-		self.button2:Show()
-		if meta1 or meta2 then 
-			ActionButton_ShowOverlayGlow(self.button2)
-		else
-			ActionButton_HideOverlayGlow(self.button2)
-		end
+	self:updateIcon(self.button_nocd, self.overlay3, secondary_spell)
+	-- if meta then 
+		-- self.button_meta:Show()
+	-- else
+		-- ActionButton_HideOverlayGlow(self.button_meta)
+		-- self.button_meta:Hide()
+	-- end
+	if meta1 or meta2 then 
+		ActionButton_ShowOverlayGlow(self.button_meta)
 	else
-		ActionButton_HideOverlayGlow(self.button2)
-		self.button2:Hide()
+		ActionButton_HideOverlayGlow(self.button_meta)
 	end
-
+	local meta_start, meta_cd = GetSpellCooldown(191427)
+	if meta_cd > gcd then 
+		self.cooldown_meta: SetCooldown(meta_start, meta_cd)
+	end
+	if buff_metamorphosis then 
+		self.overlay_meta:SetColorTexture(0, .5, 0, 0.6)
+	else
+		self.overlay_meta:SetColorTexture(0, .5, 0, 0)
+	end
 	--print(self.player: getLastCast())
 	--print(self.player: getLastCastTime())
 	if DEBUG > 4 then

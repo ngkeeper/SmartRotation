@@ -146,7 +146,6 @@ function PlayerRotation: setAction(spell, conditions, push)
 	-- If "push" is defined, the function will not take any action.
 	-- But the return value will indicated the status of the spell.
 	if not self.next_spell_trigger then return nil end
-	
 	local spell_ready = self.player:isSpellReady(spell)
 	
 	local all_conditions_met = false

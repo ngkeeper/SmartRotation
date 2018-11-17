@@ -69,6 +69,7 @@ function MageFrost:_new()
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
 	self.player: setCleaveTimeout(3, 3)
+	self.player: setPredictAll(true) 
 	self.pet_exists = false;
 	self.on_flying_mount = false;
 	
@@ -277,7 +278,7 @@ function MageFrost: nextSpell()
 		self:setAction(190356, {is_cleave, buff_freezing_rain, buff_stack_fingers_of_frost < 2})	-- blizzard
 		self:setAction(30455, buff_fingers_of_frost)	-- ice lance
 		cs_action = self:setAction(153595, {not fo_action, time_to_kill > 15}, 1)	-- comet storm
-		self:setAction(257537, {( not(talent_glacial_spike) or not(buff_stack_icicles == 5) ),not(buff_brain_freeze), time_to_kill > 10} )	-- ebonbolt
+		self:setAction(257537, {( not(talent_glacial_spike) or (buff_stack_icicles == 5) ),not(buff_brain_freeze), time_to_kill > 10} )	-- ebonbolt
 		self:setAction(205021, {not(buff_fingers_of_frost), last_cast ~= 84714})	-- ray of frost
 		self:setAction(190356, {is_cleave, buff_freezing_rain})	-- blizzard
 		_, _, gs_condition = self:setAction(199786, buff_brain_freeze or (casting_ebonbolt or last_cast == 257537)

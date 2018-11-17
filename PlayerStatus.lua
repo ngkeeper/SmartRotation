@@ -218,6 +218,9 @@ function PlayerStatus: updateBuff()
 		self.buffs: update("stack", v, 0) 
 		self.buffs: update("expiration", v, 0)
 	end
+	local gcd_start, gcd_duration = GetSpellCooldown(self.gcd_spell)
+	local gcd_remain = math.max(0, gcd_duration - GetTime() + gcd_start)
+	local prediction = self.predict_buff and self.next_spell_time or 0
 	for i = 1, 40 do
         local ub_name, _, ub_stack, _, _, ub_expiration, _, _, _, ub_spell_id = UnitBuff("player", i)
         if ub_name then
@@ -225,9 +228,7 @@ function PlayerStatus: updateBuff()
             for j, v in ipairs(self.buff_spell) do
                 if ( type(v) == "string" and v == ub_name ) or ( type(v) == "number" and v == ub_spell_id ) then
 					local expiration = ub_expiration - GetTime()
-					if self.predict_buff then 
-						expiration = expiration - self.next_spell_time
-					end
+					expiration = expiration - math.max(self.next_spell_time, gcd_remain)
 					expiration = math.max(0, expiration)
 					local expired = (expiration == 0) and not(ub_expiration == 0)
                     self.buffs: update("up", v, not(expired))
@@ -248,6 +249,9 @@ function PlayerStatus: updateDot(unit)
 	end 
 	-- table objects are passed by reference
 	-- "dots" is a reference of either self.dots or self.dots_focus
+	local gcd_start, gcd_duration = GetSpellCooldown(self.gcd_spell)
+	local gcd_remain = math.max(0, gcd_duration - GetTime() + gcd_start)
+	local prediction = self.predict_dot and self.next_spell_time or 0
 	
 	for i, v in ipairs(self.dot_spell) do 
 		dots: update("up", v, false)
@@ -260,9 +264,7 @@ function PlayerStatus: updateDot(unit)
             for j, v in ipairs(self.dot_spell) do
                 if ( type(v) == "string" and v == ud_name ) or ( type(v) == "number" and v == ud_spell_id ) then
 					local expiration = ud_expiration - GetTime()
-					if self.predict_dot then 
-						expiration = expiration - self.next_spell_time
-					end
+					expiration = expiration - math.max(self.next_spell_time, gcd_remain)
 					expiration = math.max(0, expiration)
 					dots: update("up", v, expiration > 0)
 					dots: update("expiration", v, expiration)
@@ -309,7 +311,7 @@ function PlayerStatus: updateCd()
 		local cd_duration = cd_duration or 0
         local cd_remain = math.max(0, cd_duration - GetTime() + cd_start)
 		local prediction = self.predict_cd and self.next_spell_time or 0
-        if cd_remain <= gcd_remain + math.max(reaction_time, prediction) then
+        if cd_remain <= math.max(reaction_time + gcd_remain, prediction) then
             cd_ready = true
         else
             cd_ready = false
