@@ -214,20 +214,29 @@ function MageFrost: nextSpell()
 	
 	local casting_ebonbolt = self.player:isSpellCasting(257537)
 	local casting_glacial_spike = self.player:isSpellCasting(199786)
-	local casting_frostbolt = self.player:isSpellCasting(116)
+	local casting_frostbolt = self.player:isSpellCasting(116, true)
 	local casting_blizzard = self.player:isSpellCasting(190356)
 	local casting_flurry = self.player:isSpellCasting(44614)
 	
-	
 	local buff_stack_icicles = self.player:getBuffStack(205473)
-	local buff_brain_freeze = self.player:isBuffUp(190446) or casting_ebonbolt
+	local buff_brain_freeze = self.player:isBuffUp(190446)
 	local buff_fingers_of_frost = self.player:isBuffUp(44544)
 	local buff_freezing_rain = self.player:isBuffUp(270232)
 	local buff_stack_fingers_of_frost = self.player:getBuffStack(44544)
 	local buff_icy_veins = self.player:isBuffUp(12472)
+		
 	local debuff_winters_chill = self.player:isDotUp(228358) 
 	
-	if casting_frostbolt then buff_stack_icicles = buff_stack_icicles + 1 end
+	local buff_remain_brain_freeze = self.player:getBuffRemain(190446)
+	buff_brain_freeze = buff_brain_freeze or casting_ebonbolt 
+	buff_remain_brain_freeze = casting_ebonbolt and 15 or buff_remain_brain_freeze
+	
+	buff_stack_icicles = math.min(5, buff_stack_icicles + (casting_frostbolt and 1 or 0) )
+	buff_stack_icicles = casting_glacial_spike and 0 or buff_stack_icicles
+	
+	local casttime_frostbolt = select(4, GetSpellInfo(116)) / 1000
+	local casttime_glacial_spike = select(4, GetSpellInfo(199786)) / 1000
+	local time_flurry_gs = (5 - buff_stack_icicles) * casttime_frostbolt + casttime_glacial_spike
 	
 	self.next_spell_trigger = true
 	self.next_spell = nil
@@ -248,16 +257,20 @@ function MageFrost: nextSpell()
 	local gs_ready = ( buff_stack_icicles >= 5 )
 	local gs_condition
 	if is_aoe then 
-		fo_action = self:setAction(84714, time_to_kill > 10, 1)	-- frozen orb
+		fo_action = self:setAction(84714, 1)	-- frozen orb
 		blz_action = self:setAction(190356, true, 1)	-- blizzard
-		cs_action = self:setAction(153595, {not fo_action, not casting_blizzard, time_to_kill > 10}, 1)	-- comet storm
+		cs_action = self:setAction(153595, {not fo_action, not casting_blizzard}, 1)	-- comet storm
 		self:setAction(157997)	-- ice nova
-		self:setAction(44614, (casting_ebonbolt or last_cast == 257537) or 
-			( buff_brain_freeze and ( (casting_glacial_spike or last_cast == 199786) or 
-			( ( casting_frostbolt or last_cast == 116 ) and (buff_stack_icicles < 4 or not(talent_glacial_spike))) )))	-- flurry
+		self:setAction(44614, {not(talent_glacial_spike), (casting_ebonbolt or last_cast == 257537)
+			or ((casting_frostbolt or last_cast == 116) and buff_brain_freeze) })	-- flurry
+		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, buff_remain_brain_freeze < time_flurry_gs})	-- flurry, brain freeze can't sustain until gs 
+		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, 
+			( casting_glacial_spike or last_cast == 199786 ) or 
+			( (casting_ebonbolt or last_cast == 257537) and buff_stack_icicles < 4 ) or 
+			( (casting_frostbolt or last_cast == 116) and buff_stack_icicles < 4 )} )	-- flurry
 		self:setAction(30455, buff_fingers_of_frost)	-- ice lance
 		self:setAction(205021) 	-- ray of frost
-		self:setAction(257537, time_to_kill > 10) 	-- ebonbolt
+		self:setAction(257537, time_to_kill > 5) 	-- ebonbolt
 		_, _, gs_condition = self:setAction(199786, buff_brain_freeze or (casting_ebonbolt or last_cast == 257537)
 			or (is_cleave and talent_splitting_ice), 1 )	-- glacial spike
 		-- if casting frostbolt and have 4 icicles, glacial spike will be ready as the next spell
@@ -270,16 +283,18 @@ function MageFrost: nextSpell()
 	else
 		self:setAction(157997, debuff_winters_chill) -- ice nova
 		self:setAction(44614, {not(talent_glacial_spike), (casting_ebonbolt or last_cast == 257537)
-			or (last_cast == 116 and buff_brain_freeze) })	-- flurry
+			or ((casting_frostbolt or last_cast == 116) and buff_brain_freeze) })	-- flurry
+		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, buff_remain_brain_freeze < time_flurry_gs})	-- flurry, brain freeze can't sustain until gs 
 		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, 
-			(casting_glacial_spike or last_cast == 199786) or 
+			( casting_glacial_spike or last_cast == 199786 ) or 
 			( (casting_ebonbolt or last_cast == 257537) and buff_stack_icicles < 4 ) or 
-			(last_cast == 116 and buff_stack_icicles < 4) })	-- flurry
-		fo_action = self:setAction(84714, time_to_kill > 15, 1)	-- frozen orb
+			( (casting_frostbolt or last_cast == 116) and buff_stack_icicles < 4 )} )	-- flurry
+		fo_action = self:setAction(84714, time_to_kill > 10, 1)	-- frozen orb
 		self:setAction(190356, {is_cleave, buff_freezing_rain, buff_stack_fingers_of_frost < 2})	-- blizzard
 		self:setAction(30455, buff_fingers_of_frost)	-- ice lance
-		cs_action = self:setAction(153595, {not fo_action, time_to_kill > 15}, 1)	-- comet storm
-		self:setAction(257537, {( not(talent_glacial_spike) or (buff_stack_icicles == 5) ),not(buff_brain_freeze), time_to_kill > 10} )	-- ebonbolt
+		cs_action = self:setAction(153595, {not fo_action, time_to_kill > 10}, 1)	-- comet storm
+		self:setAction(257537, {( not(talent_glacial_spike) or (buff_stack_icicles == 5) ),
+			not(buff_brain_freeze), time_to_kill > time_flurry_gs + gcd * 2} )	-- ebonbolt
 		self:setAction(205021, {not(buff_fingers_of_frost), last_cast ~= 84714})	-- ray of frost
 		self:setAction(190356, {is_cleave, buff_freezing_rain})	-- blizzard
 		_, _, gs_condition = self:setAction(199786, buff_brain_freeze or (casting_ebonbolt or last_cast == 257537)

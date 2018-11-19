@@ -24,25 +24,27 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	
 	self.anchor_x = 0
 	self.anchor_y = 0
-	self.button = CreateFrame("Button", "SR_main_button", UIParent, "ActionButtonTemplate")
-	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y)
-	self.button: Disable()
 	self.size = 50
-	self.button: SetSize(self.size,self.size)
+	self.ui_ratio = 1
+	
+	self.button = CreateFrame("Button", "SR_main_button", UIParent, "ActionButtonTemplate")
+	self.button: Disable()
 	self.button: SetNormalTexture(self.button: GetHighlightTexture())
-	--self.button.icon: SetTexture()
 	self.button: Show()
 	
 	self.text = self.button:CreateFontString("SR_main_button_text","OVERLAY")
 	self.text:SetFont("Fonts\\FRIZQT__.ttf", 24, "THICKOUTLINE")
 	self.text:SetTextColor(1, 1, 1)
-	self.text:SetPoint("CENTER",self.anchor_x, self.anchor_y)
+	--self.text:SetAllPoints(self.button)
+	self.text:SetJustifyH("CENTER")
+	self.text:SetJustifyV("MIDDLE")
 	self.text:SetText("")
 	
 	self.overlay = self.button:CreateTexture("SR_main_button_overlay")
 	self.overlay:SetAllPoints(self.button)
 	self.overlay:SetColorTexture(.5, .5, 0, 0)
 
+	self:setSize()
 end
 
 
@@ -59,20 +61,19 @@ function PlayerRotation: disable()
 	self.enabled = false
 end
 function PlayerRotation: setSize(size)
-	if size then 
-		self.size = math.max(size, 0)
-		self.button: SetSize(size, size)
-	end
+	self.size = size or self.size
+	self.ui_ratio = self.size / 50
+	self.button: SetSize(self.size,self.size)
+	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y)
+	self.text: SetPoint("CENTER", 2 * self.ui_ratio, 40 * self.ui_ratio)
 end
 function PlayerRotation: getSize()
 	return self.size
 end
 function PlayerRotation: setPosition(x, y)
-	if x and y then
-		self.anchor_x = x
-		self.anchor_y = y
-		self.button: SetPoint("CENTER", x, y)
-	end
+	self.anchor_x = x or self.anchor_x
+	self.anchor_y = y or self.anchor_y
+	self:setSize()
 end
 function PlayerRotation: getPosition()
 	return self.anchor_x, self.anchor_y
@@ -134,7 +135,8 @@ function PlayerRotation: updateIcon(button, overlay, spell)
 	end
 	
 	if DEBUG > 0 then 
-		self.text:SetText(tostring(math.ceil(self.player: timeToKill())))
+		local time_to_kill = math.ceil(self.player: timeToKill())
+		self.text:SetText(time_to_kill > 0 and tostring(time_to_kill) or "")
 	end
 end
 function PlayerRotation: getRange(unit)

@@ -77,7 +77,7 @@ function PlayerStatus: _new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_
 	self.next_spell_time = 0	-- next spell is usable in x seconds
 	self.predict_cd = false		-- whether returns cd info based on the time of next spell
 	self.predict_buff = false	-- same
-	self.predict_dots = false	-- same
+	self.predict_dot = false	-- same
 	--self.buffs: printMatrix()
 	
 	return self
@@ -355,19 +355,22 @@ function PlayerStatus: timeToKill(unit)
 	n_dps = math.max(1, n_dps)
 	--print(n_dps)
 	self.time_to_kill = hp_target / (self.one_man_dps * n_dps)
+	-- if self.predict_buff and self.predict_cd and self.predict_dot then 
+		-- self.time_to_kill = math.max(0, self.time_to_kill - self.next_spell_time)
+	-- end
 	return self.time_to_kill, n_dps
 end
 
-function PlayerStatus: isSpellCasting(spell)
-	-- local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo("player")
-	-- if uci_spell then 
-		-- local casting = uci_spell
-		-- if type(spell) == "number" then casting = uci_spell_id end
-		-- return ( spell == casting )
-	-- else 
-		-- return false 
-	-- end
-	return (spell == self.casting_spell)
+function PlayerStatus: isSpellCasting(spell, uci)
+	if not uci then return (spell == self.casting_spell) end
+	local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo("player")
+	if uci_spell then 
+		local casting = uci_spell
+		if type(spell) == "number" then casting = uci_spell_id end
+		return ( spell == casting )
+	else 
+		return false 
+	end
 end
 function PlayerStatus: isSpellCastingNoDelay(spell)
 	-- self:isSpellCasting() has ~300ms delay
