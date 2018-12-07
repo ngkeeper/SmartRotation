@@ -45,7 +45,9 @@ function PaladinRetribution:_new()
 	local cleave_targets = 2
 	local aoe_targets = 3
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
-	self.player:setPowerType(9) -- 9 is holy power
+	self.player: setCleaveTimeout(5, 5)
+	self.player: setPowerType(9) -- 9 is holy power
+	self.player: setPredictAll(true)
 	--self.enabled = false
 	
 	-- the main icon is included in PlayerRotation class
@@ -72,6 +74,7 @@ function PaladinRetribution:_new()
 	self.button_cd3: SetNormalTexture(self.button_cd3: GetHighlightTexture())
 	self.button_cd3.icon: SetTexture(GetSpellTexture(255937))
 	self.button_cd3:Hide()
+	
 	
 	self:setSize()
 end
@@ -108,6 +111,7 @@ function PaladinRetribution: nextSpell()
 	if not(self.enabled) then 
 		return nil
 	end
+	
 	local adds_coming = false	-- there's no way to predict if adds are coming
 	local gcd = self.player:getGCD()
 	local time_to_kill = self.player:timeToKill()
@@ -144,6 +148,13 @@ function PaladinRetribution: nextSpell()
 	local cd_crusade = self.player:getCdRemain(231895)
 	local cd_blade_of_justice = self.player:getCdRemain(184575)
 	local cd_hammer_of_wrath = self.player:getCdRemain(24275)
+	
+	local last_cast = self.player: getLastCast()
+	local last_cast_time = self.player: getLastCastTime()
+	if last_cast_time >= 2 * gcd then last_cast = 0 end
+	-- if last_cast == 53385 then self.player:setTargetsHit(3) end		-- start AOE rotaiton if divine storm used
+	-- disabled, if divine storm did not hit 3 targets, then it is not AOE scenario
+	if last_cast == 85256 then self.player:setTargetsHit(1) end		-- stop AOE rotation if templar's verdict is used
 	
 	-- simc variables
 	local HoW = not(talent_hammer_of_wrath) or (health_percentage_target >= 0.2 and (not(buff_avenging_wrath) or not(buff_crusade)))

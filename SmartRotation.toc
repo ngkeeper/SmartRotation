@@ -1,6 +1,6 @@
 ## Interface: 80000
 ## Title: SmartRotation
-## Version: 0.0.2
+## Version: 0.1.1
 ## Notes: DPS Rotation Icon.
 ## SavedVariablesPerCharacter: SIZE, X, Y
 

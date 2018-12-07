@@ -26,10 +26,12 @@ function PriestShadow:_new()
 							205385, 	--"Shadow Crash"
 							263346, 	--"Dark Void"
 							32379, 		--"Shadow Word: Death"
-							205065		--"Void Torrent"
+							205065,		--"Void Torrent"
+							205351,		--"Shadow Word: Void" 	
 						  }
     local casting_spell = {	228260, 	--"Void Eruption"
 							8092, 		--"Mind Blast"
+							205351, 	--"Shadow Word: Void" 	
 							34914, 		--"Vampiric Touch"
 							15407, 		--"Mind Flay"
 							48045 		--"Mind Sear" 
@@ -50,7 +52,7 @@ function PriestShadow:_new()
 	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
-	self.player: setCleaveTimeout(4.5, 4.5)
+	self.player: setCleaveTimeout(4, 4)
 	self.player: setPredictAll(true) 
 	--self.enabled = false
 	
@@ -114,6 +116,8 @@ function PriestShadow: nextSpell()
 	local time_to_kill = self.player:timeToKill()
 	local is_cleave = self.player:isCleave()
 	local is_aoe = self.player:isAOE()
+	
+	local talent_shadow_word_void = (self.talent[1] == 3)
 	local talent_misery = (self.talent[3] == 2)
 	local talent_dark_void = (self.talent[3] == 3)
 	local talent_legacy_of_the_void = (self.talent[7] == 1)
@@ -125,7 +129,10 @@ function PriestShadow: nextSpell()
 		self.player: setAOEThreshold(6)
 	end
 	
-	
+	local last_cast = self.player: getLastCast()
+	local last_cast_time = self.player: getLastCastTime()
+	if last_cast_time >= 2 * gcd then last_cast = 0 end
+	if last_cast == 15407 then self.player:setTargetsHit(1) end		-- stop AOE rotation if mind flay is used
 	
 	local dot_refreshable_shadow_word_pain = self.player: isDotRefreshable(589)	--"Shadow Word: Pain"
 	local dot_refreshable_vampiric_touch = self.player: isDotRefreshable(34914)	--"Vampiric Touch"
@@ -143,24 +150,32 @@ function PriestShadow: nextSpell()
 	local cd_void_bolt = self.player:getCdRemain(228266)	--"Void Bolt"
 	
 	local charge_shadow_word_death = self.player:getSpellCharge(32379)	--"Shadow Word: Death"
+	local charge_shadow_word_void = self.player:getSpellCharge(205351)	--"Shadow Word: Void"
+	
 	local casting_void_eruption = self.player: isSpellCasting(228260)	--"Void Eruption"
 	local casting_dark_void = self.player: isSpellCasting(263346)	--"Dark Void"
 	local casting_dark_void_no_delay = self.player: isSpellCastingNoDelay(263346)	--"Dark Void"
 	local casting_mind_blast_no_delay = self.player: isSpellCastingNoDelay(8092)	--"Mind Blast"
+	local casting_shadow_word_void_no_delay = self.player: isSpellCastingNoDelay(205351)	--"Shadow Word: Void"
+	charge_shadow_word_void = math.max(0, charge_shadow_word_void - ( casting_shadow_word_void_no_delay and 1 or 0 ))
+	--if charge_shadow_word_void == 0 and casting_shadow_word_void_no_delay then charge_shadow_word_void = 1 end
 	
 	local buff_voidform = self.player:isBuffUp(194249) or casting_void_eruption	--"Voidform"
 	local buff_stack_voidform = self.player:getBuffStack(194249)	--"Voidform"
 	
 	local next_spell_time = self.player: getNextSpellTime()
+	buff_stack_voidform = buff_stack_voidform + math.floor(next_spell_time)
 	
 	-- Estimating insanity by next available cast time
 	-- from calibration, (this may correlate with character stats)
 	-- insanity loss rate = 4.52 + 2 * 0.436 * t (buff_stack_voidform)
 	-- integral | (t0, t0 + dt) = 4.52 * dt + 0.436 * ( (t0 + dt)^2 - t0^2 )
 	insanity_loss = 4.52 * next_spell_time + 0.436 * ( (buff_stack_voidform + next_spell_time)^2 - buff_stack_voidform^2 )
-	insanity = math.max(0, insanity - insanity_loss)
+	insanity = math.max(0, insanity - insanity_loss * (buff_voidform and 1 or 0))
 	buff_voidform = buff_voidform and (insanity > 0)
-	insanity = insanity + (casting_dark_void_no_delay and 30 or 0) + (casting_mind_blast_no_delay and 14 or 0)
+	insanity = insanity + (casting_dark_void_no_delay and 30 or 0) + 
+						  (casting_mind_blast_no_delay and 14 or 0) + 
+						  (casting_shadow_word_void_no_delay and 14 or 0)
 	
 	-- self:setAction(spell, conditions, [optional]): 
 	-- modifies self.next_spell if all conditions are met
@@ -181,14 +196,14 @@ function PriestShadow: nextSpell()
 	
 	-------------------
 	-- simc action list
-	
+	-- print(charge_shadow_word_void)
 	if is_aoe then 
 		-- simc: actions.aoe
 		_, _, void_eruption_action = self: setAction(228260, {not(buff_voidform)}, 1)	--"Void Eruption"
 		dark_ascension_action = self: setAction(280711, {not(buff_voidform), not(casting_void_eruption)}, 1 )	--"Dark Ascension"
 		self: setAction(228266, {buff_voidform, dot_remain_shadow_word_pain > 1})	--"Void Bolt"
 		self: setAction(263346, not(adds_coming) )	--"Dark Void"
-		mindbender_action = self: setAction(200174, time_to_kill > 10, 1)	--"Mindbender"
+		mindbender_action = self: setAction(200174, {time_to_kill > 10, buff_stack_voidform >= 8}, 1)	--"Mindbender"
 		self: setAction(205385, not(adds_coming) )	--"Shadow Crash"
 		self: setAction(48045)	--"Mind Sear"
 		self: setAction(589)	--"Shadow Word: Pain"
@@ -203,8 +218,9 @@ function PriestShadow: nextSpell()
 		end
 		self: setAction(32379, time_to_kill < 3 or not(buff_voidform) )	--"Shadow Word: Death"
 		self: setAction(263346, not(adds_coming) )	--"Dark Void"
-		mindbender_action = self: setAction(200174, time_to_kill > 10, 1)	--"Mindbender"
-		self: setAction(8092)	--"Mind Blast"
+		mindbender_action = self: setAction(200174, {time_to_kill > 10, buff_stack_voidform >= 8}, 1)	--"Mindbender"
+		self: setAction(8092, not(talent_shadow_word_void))	--"Mind Blast"
+		self: setActionShadowWordVoid({talent_shadow_word_void, charge_shadow_word_void == 2})	--"Shadow Word: Void"
 		self: setAction(205385, not(adds_coming) )	--"Shadow Crash"
 		self: setAction(589, { dot_refreshable_shadow_word_pain, time_to_kill > 4, not(casting_dark_void), not(talent_misery), (cd_dark_void > 6.5) or not(talent_dark_void)} )
 		local vt_conditions1 = dot_refreshable_vampiric_touch and ( time_to_kill > 6 )
@@ -216,6 +232,7 @@ function PriestShadow: nextSpell()
 		self: setActionFocus(34914, {dot_refreshable_focus_vampiric_touch, time_to_kill > 6}, vt_nocheck)	--"Vampiric Touch"
 		self: setActionFocus(34914, {talent_misery, dot_refreshable_focus_shadow_word_pain, time_to_kill > 4}, vt_nocheck )	--"Vampiric Touch"
 		self: setAction(205065)	--"Void Torrent"
+		self: setActionShadowWordVoid({talent_shadow_word_void, charge_shadow_word_void > 0})	--"Shadow Word: Void"
 		self: setAction(48045)	--"Mind Sear"
 		self: setAction(589)	--"Shadow Word: Pain"
 	else
@@ -229,10 +246,11 @@ function PriestShadow: nextSpell()
 		end
 		self: setAction(32379, time_to_kill < 3 or charge_shadow_word_death == 2 or ( charge_shadow_word_death == 1 and cd_shadow_word_death < gcd ))	--"Shadow Word: Death"
 		self: setAction(263346, not(adds_coming) )	--"Dark Void"
-		mindbender_action = self: setAction(200174, time_to_kill > 10, 1)	--"Mindbender"
+		mindbender_action = self: setAction(200174, {time_to_kill > 10, buff_stack_voidform >= 8}, 1)	--"Mindbender"
 		self: setAction(32379, not(buff_voidform) or ( charge_shadow_word_death == 2 and buff_stack_voidform < 15))	--"Shadow Word: Death"
 		self: setAction(205385, not(adds_coming) )	--"Shadow Crash"
-		self: setAction(8092, all_dots_up)	--"Mind Blast"
+		self: setAction(8092, {not(talent_shadow_word_void), all_dots_up})	--"Mind Blast"
+		self: setActionShadowWordVoid({talent_shadow_word_void, charge_shadow_word_void == 2})	--"Shadow Word: Void"
 		self: setAction(205065, {dot_remain_shadow_word_pain > 4, dot_remain_vampiric_touch > 4})	--"Void Torrent"
 		self: setAction(589, { dot_refreshable_shadow_word_pain, time_to_kill > 4, not(casting_dark_void), not(talent_misery), (cd_dark_void > 6.5) or not(talent_dark_void)} ) --"Shadow Word: Pain" , not(talent_dark_void)
 		local vt_conditons = (dot_refreshable_vampiric_touch and time_to_kill > 6) or (talent_misery and dot_refreshable_shadow_word_pain)
@@ -240,7 +258,8 @@ function PriestShadow: nextSpell()
 		local vt_nocheck = vt_conditons and self.player:isSpellCasting(34914)
 		self: setActionFocus(589, { dot_refreshable_focus_shadow_word_pain, time_to_kill > 4, not(casting_dark_void), not(talent_misery), (cd_dark_void > 6.5) or not(talent_dark_void)} ) --"Shadow Word: Pain" , not(talent_dark_void)
 		self: setActionFocus(34914, (dot_refreshable_focus_vampiric_touch and time_to_kill > 6) or (talent_misery and dot_refreshable_focus_shadow_word_pain), vt_nocheck)	--"Vampiric Touch"
-		self: setAction(8092)	--"Mind Blast"
+		self: setAction(8092, not(talent_shadow_word_void))	--"Mind Blast"
+		self: setActionShadowWordVoid({talent_shadow_word_void, charge_shadow_word_void > 0})	--"Shadow Word: Void"
 		self: setAction(15407)	--"Mind Flay"
 		self: setAction(589)	--"Shadow Word: Pain"
 	end 
@@ -307,5 +326,28 @@ function PriestShadow: nextSpell()
 	return self.next_spell
 end
 
-
+function PriestShadow: setActionShadowWordVoid(conditions)
+	if not self.next_spell_trigger then return nil end
+	
+	local spell = 205351
+	local all_conditions_met = false
+	if type(conditions) == "nil" then
+		all_conditions_met = true
+	end
+	if type(conditions) == "boolean" then
+		all_conditions_met = conditions
+	end
+	if type(conditions) == "table" then
+		all_conditions_met = true
+		for i, v in ipairs(conditions) do 
+			all_conditions_met = all_conditions_met and v
+		end
+	end
+	if all_conditions_met then
+		self.next_spell = spell
+		self.next_spell_on_focus = false
+		self.next_spell_trigger = false
+	end
+	return all_conditions_met
+end
 

@@ -38,6 +38,8 @@ function PlayerStatus: _new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_
 	self.casting = ""
 	
 	self.cleave = CleaveLog(self.cleave_spell, self.cleave_targets, self.aoe_targets)
+	self.time_manual_cleave_change = time()
+	self.cd_manual_cleave_change = 2
 	
 	-- timestamp in combat log resembles time(), but is accurate to 0.001s
 	-- GetTime() is accurate to 0.001s, but has an offset
@@ -317,11 +319,18 @@ function PlayerStatus: updateCd()
             cd_ready = false
         end
 		
-		local charge = GetSpellCharges(v)
+		local charge, max_charge, cd_start1, cd_duration1 = GetSpellCharges(v)
+		if max_charge then 
+			local cd_remain1 = 0 
+			if cd_start1 < 4200000 then 
+				cd_remain1 = math.max(0, cd_duration1 * (max_charge - charge) - GetTime() + cd_start1)
+				cd_remain1 = math.max(0, cd_remain1 - prediction)
+				charge = max_charge - math.ceil(cd_remain1 / cd_duration1)
+			end
+		end
 		self.cds:update("remain", v, math.max(0, cd_remain - prediction))
 		self.cds:update("up", v, cd_ready)
 		self.cds:update("charge", v, charge)
-		-- "charge" need to be improved using self.next_spell_time
 		
     end 
 	--print(self.cds:get("up", 228266))
@@ -507,6 +516,12 @@ function PlayerStatus: setPredictAll(predict)
 	self:setPredictCd(predict)
 	self:setPredictBuff(predict)
 	self:setPredictDot(predict)
+end
+function PlayerStatus: setTargetsHit(target)
+	if time() - self.time_manual_cleave_change < self.cd_manual_cleave_change then return nil end
+	--print("Set targets hit to: " .. tostring(target))
+	self.time_manual_cleave_change = time()
+	self.cleave: setTargetsHit(target)
 end
 function PlayerStatus: getGCD()
 	return self.gcd

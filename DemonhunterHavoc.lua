@@ -198,11 +198,13 @@ function DemonhunterHavoc: nextSpell()
 	-- returns self.next_spell, or a nil value if spell is not usable or conditions are not met
 	-- if a third parameter is defined, setAction() not make any change
 	
+	self.next_spell = 162243	-- use 'nil' will hide icon on cc/death/etc.
 	self.next_spell_trigger = true
 	
 	-- simc: actions.cooldown
 	local meta = self:setAction(191427, true, 1) -- checks if metamorphosis is usable
 	local meta1 = self:setAction(191427, {not(buff_metamorphosis),not(talent_demonic or pooling_for_meta or waiting_for_nemesis), time_to_kill > 25}, 1)
+	self:setAction(210152, {buff_metamorphosis, blade_dance}) -- "Death Sweep"
 	local meta2 = self:setAction(191427, {talent_demonic, buff_metamorphosis, time_to_kill > 25}, 1) 
 	self:setAction(206491, {is_cleave, not(debuff_nemesis)}) --"Nemesis"
 	self:setAction(206491, not(is_cleave)) --"Nemesis"
@@ -222,7 +224,7 @@ function DemonhunterHavoc: nextSpell()
 	self:setAction(162243) -- "Demon's Bite"
 	
 	local main_spell = self.next_spell
-	self.next_spell = nil
+	self.next_spell = 162243
 	self.next_spell_trigger = true
 	
 	-- secondary icon, using no major cds

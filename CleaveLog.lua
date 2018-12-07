@@ -31,7 +31,7 @@ function CleaveLog: targetsHit()
 end
 
 function CleaveLog: isCleave()
-	if time() - self.last_cleave > self.cleave_timeout then
+	if time() - self.last_cleave >= self.cleave_timeout then
 		self.is_cleave = false
 	else 
 		self.is_cleave = true
@@ -39,7 +39,7 @@ function CleaveLog: isCleave()
 	return self.is_cleave
 end
 function CleaveLog: isAOE()
-	if time() - self.last_aoe > self.aoe_timeout then
+	if time() - self.last_aoe >= self.aoe_timeout then
 		self.is_aoe = false
 	else 
 		self.is_aoe = true
@@ -69,6 +69,19 @@ end
 function CleaveLog: setTimeout(cleave, aoe)
 	self.cleave_timeout = cleave or self.cleave_timeout
 	self.aoe_timeout = aoe or self.aoe_timeout
+end
+function CleaveLog: setTargetsHit(targets)
+	targets = targets or 1
+	if targets >= self.targets_aoe then 
+		self.last_aoe = time()
+		self.last_cleave = time()
+	elseif targets >= self.targets_cleave then 
+		self.last_aoe = time() - self.aoe_timeout - 1
+		self.last_cleave = time()
+	else
+		self.last_aoe = time() - self.aoe_timeout - 1
+		self.last_cleave = time() - self.cleave_timeout - 1
+	end
 end
 function CleaveLog: update()  
     local timestamp, message, _, _, source_name, _, _, _, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
@@ -113,17 +126,17 @@ function CleaveLog: update()
 			self.last_aoe = timestamp
 		end
 		self.last_hit = timestamp
-    elseif timestamp - self.last_cleave > self.cleave_timeout then
+    elseif timestamp - self.last_cleave >= self.cleave_timeout then
         self.targets_hit = 1
     end
     --print(self.targets_hit)
 	
-    if timestamp - self.last_cleave > self.cleave_timeout then
+    if timestamp - self.last_cleave >= self.cleave_timeout then
         self.is_cleave = false
     else 
         self.is_cleave = true
     end
-	if timestamp - self.last_aoe > self.aoe_timeout then
+	if timestamp - self.last_aoe >= self.aoe_timeout then
         self.is_aoe = false
     else 
         self.is_aoe = true
