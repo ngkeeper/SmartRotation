@@ -164,7 +164,7 @@ function PriestShadow: nextSpell()
 	local buff_stack_voidform = self.player:getBuffStack(194249)	--"Voidform"
 	
 	local next_spell_time = self.player: getNextSpellTime()
-	buff_stack_voidform = buff_stack_voidform + math.floor(next_spell_time)
+	buff_stack_voidform = buff_stack_voidform + math.floor(next_spell_time) * ( buff_stack_voidform and 1 or 0 )
 	
 	-- Estimating insanity by next available cast time
 	-- from calibration, (this may correlate with character stats)
@@ -193,7 +193,8 @@ function PriestShadow: nextSpell()
 	void_eruption_usable = insanity >= (talent_legacy_of_the_void and 60 or 90)
 	dark_ascension_usable = self: setAction(280711, true, 1)	--"Dark Ascension"
 	mindbender_usable = self: setAction(200174, true, 1)	--"Mindbender"
-	
+
+
 	-------------------
 	-- simc action list
 	-- print(charge_shadow_word_void)
@@ -253,7 +254,8 @@ function PriestShadow: nextSpell()
 		self: setActionShadowWordVoid({talent_shadow_word_void, charge_shadow_word_void == 2})	--"Shadow Word: Void"
 		self: setAction(205065, {dot_remain_shadow_word_pain > 4, dot_remain_vampiric_touch > 4})	--"Void Torrent"
 		self: setAction(589, { dot_refreshable_shadow_word_pain, time_to_kill > 4, not(casting_dark_void), not(talent_misery), (cd_dark_void > 6.5) or not(talent_dark_void)} ) --"Shadow Word: Pain" , not(talent_dark_void)
-		local vt_conditons = (dot_refreshable_vampiric_touch and time_to_kill > 6) or (talent_misery and dot_refreshable_shadow_word_pain)
+		local vt_conditons = (dot_refreshable_vampiric_touch and time_to_kill > 6 ) or 
+							 (talent_misery and dot_refreshable_shadow_word_pain and time_to_kill > 4 )
 		self: setAction(34914, vt_conditons )	--"Vampiric Touch"
 		local vt_nocheck = vt_conditons and self.player:isSpellCasting(34914)
 		self: setActionFocus(589, { dot_refreshable_focus_shadow_word_pain, time_to_kill > 4, not(casting_dark_void), not(talent_misery), (cd_dark_void > 6.5) or not(talent_dark_void)} ) --"Shadow Word: Pain" , not(talent_dark_void)
