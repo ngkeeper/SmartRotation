@@ -137,6 +137,7 @@ function DruidBalance: updateStatus()
 	
 	s.gcd = self.player:getGCD()
 	s.time_to_kill = self.player:timeToKill()
+	s.focus_time_to_kill = self.player:timeToKill("focus")
 	s.is_cleave = self.player:isCleave()
 	s.is_aoe = self.player:isAOE()
 	s.targets_hit = self.player: getCleaveTargets()
@@ -186,6 +187,9 @@ function DruidBalance: updateStatus()
 	s.refreshable_sunfire = self.player: isDotRefreshable(164815)
 	s.refreshable_moonfire = self.player: isDotRefreshable(164812)
 	s.refreshable_stellar_flare = self.player: isDotRefreshable(202347)
+	s.focus_refreshable_sunfire = self.player: isDotRefreshable(164815, "focus")
+	s.focus_refreshable_moonfire = self.player: isDotRefreshable(164812, "focus")
+	s.focus_refreshable_stellar_flare = self.player: isDotRefreshable(202347, "focus")
 	s.dot_moonfire = self.player: isDotUp(164812)
 	
 	s.buff_moonkin_form = self.player: isBuffUp(24858)
@@ -256,6 +260,8 @@ function DruidBalance: nextSpell()
 	-- simc action list
 	-- print(charge_shadow_word_void)
 	
+	
+	local woe_action, woe_usable = self: setAction(202425, s.time_to_kill > 6, 1)	-- "Warrior of Elune"
 	local foe_action, foe_usable = self: setAction(211545, {s.ca_inc_up or s.ca_inc_cd_remain > 30, s.ap_deficit >= 8}, 1)	-- "Fury of Elune"
 	
 	local cancel_starlord = self: setAction(93402, {s.buff_starlord, s.buff_remain_starlord < 8, s.ap_deficit < 8})
@@ -269,14 +275,31 @@ function DruidBalance: nextSpell()
 							
 							}) --"Starsurge" buff.arcanic_pulsar.stack<8
 	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 )
+	
 	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
 							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
+	self: setActionFocus(164815, {s.focus_refreshable_sunfire, s.focus_time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
+							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
+							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
+	
 	self: setAction(164812, {s.refreshable_moonfire, s.time_to_kill * s.targets_hit > 9, s.ap_deficit >= 3, 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
-	self: setAction(202347, {s.refreshable_stellar_flare, s.time_to_kill * s.targets_hit > 9, s.ap_deficit >= 8, 
-							 s.az_ss == 0 or (not s.ca_inc_up) or (s.last_cast ~= 202347 and not s.casting_stellar_flare) }) -- "Stellar Flare"
-
+	self: setActionFocus(164812, {s.focus_refreshable_moonfire, s.focus_time_to_kill * s.targets_hit > 9, s.ap_deficit >= 3, 
+							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
+	
+	local stellar_flare_conditions = s.refreshable_stellar_flare and 
+									 s.time_to_kill * s.targets_hit > 9 and s.ap_deficit >= 8 and 
+									 (s.az_ss == 0 or (not s.ca_inc_up) or (s.last_cast ~= 202347 and not s.casting_stellar_flare)) 
+	self: setAction(202347, stellar_flare_conditions) -- "Stellar Flare"
+	self: setActionFocus(202347, {s.focus_refreshable_stellar_flare,  
+								  s.focus_time_to_kill * s.targets_hit > 9, s.ap_deficit >= 8,  
+								  s.az_ss == 0 or (not s.ca_inc_up) or (s.last_cast ~= 202347 and not s.casting_stellar_flare)}, 
+						 stellar_flare_conditions and s.casting_stellar_flare) -- "Stellar Flare"
+	--self: setActionFocus(202347, stellar_flare_conditions, stellar_flare_conditions and s.casting_stellar_flare) -- "Stellar Flare"
+	-- setActionFocus() will not register the event if the spell is already being cast 
+	-- however, if player is casting stellar flare on 'target', SR should still prompt player to cast on 'focus'
+	
 	self: setAction(274281, s.ap_deficit >= 10)	--"New Moon"
 	self: setAction(274282, s.ap_deficit >= 20)	--"Half Moon"
 	self: setAction(274283, s.ap_deficit >= 40)	--"Full Moon"
@@ -304,11 +327,16 @@ function DruidBalance: nextSpell()
 	
 	local button_cd_glow = false
 	
-	if foe_usable then 
-		self:updateIcon(self.button_cds, nil, 211545)
-		if foe_action then button_cd_glow = true end
-	else 
-		self.button_cds: Hide()
+	if woe_usable then 
+		self:updateIcon(self.button_cds, nil, 202425)
+		if woe_action and self.next_spell == 194153 then button_cd_glow = true end
+	else
+		if foe_usable then 
+			self:updateIcon(self.button_cds, nil, 211545)
+			if foe_action then button_cd_glow = true end
+		else 
+			self.button_cds: Hide()
+		end
 	end
 	
 	if not s.buff_moonkin_form and not s.buff_travel_form and not IsMounted() then 
