@@ -39,6 +39,7 @@ function CleaveLog: isCleave()
 	return self.is_cleave
 end
 function CleaveLog: isAOE()
+	--print(targets_hit)
 	if time() - self.last_aoe >= self.aoe_timeout then
 		self.is_aoe = false
 	else 
@@ -66,9 +67,10 @@ function CleaveLog: setAOEThreshold(targets)
 	end
 	return self.targets_aoe
 end
-function CleaveLog: setTimeout(cleave, aoe)
+function CleaveLog: setTimeout(cleave, aoe, spell)
 	self.cleave_timeout = cleave or self.cleave_timeout
 	self.aoe_timeout = aoe or self.aoe_timeout
+	self.spell_timeout = spell or self.spell_timeout
 end
 function CleaveLog: setTargetsHit(targets)
 	targets = targets or 1
@@ -84,24 +86,18 @@ function CleaveLog: setTargetsHit(targets)
 	end
 end
 function CleaveLog: update()  
-    local timestamp, message, _, _, source_name, _, _, _, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
+    local timestamp, message, _, _, source_name, _, _, dest_GUID, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
 	local player_name = UnitName("player")
 	
 	if not(message) or not(source_name == player_name) or not(message == "SPELL_DAMAGE") then 
 		return nil 
 	end
-	
-    --print(tostring(spell_name).." "..tostring(spell_id))
-	if not message then 
-		return nil 
-	end    
-    
+	--print(spell_name.." "..tostring(spell_id).." "..tostring(dest_GUID))    
     local is_relevant_spell = false
 	
     for i, v in ipairs(self.cleave_spells) do
 		local spell = spell_name
 		if type(v) == "number" then spell = spell_id end
-		--print(spell)
         if v == spell then 
             is_relevant_spell = true
         end
@@ -109,6 +105,7 @@ function CleaveLog: update()
     
     -- If you tried to cast your cleave spell
     if is_relevant_spell then
+		--print(self.targets_hit)
 		-- if this event ran on the same exact moment as last event
 		if (timestamp == self.last_hit) then -- simultaneous hit
 			

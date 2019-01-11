@@ -331,7 +331,7 @@ function PlayerStatus: updateCd()
 		self.cds:update("remain", v, math.max(0, cd_remain - prediction))
 		self.cds:update("up", v, cd_ready)
 		self.cds:update("charge", v, charge)
-		
+		--if spell == "Fury of Elune" then print(gcd_duration) end
     end 
 	--print(self.cds:get("up", 228266))
 	--self.cds: printMatrix()
@@ -419,6 +419,7 @@ function PlayerStatus: isSpellReady(spell)
 	local not_being_cast = not(self: isSpellCasting(spell)) 
 	local switched_target = (UnitGUID("target") ~= self.casting_target_GUID)
 	local not_recently_cast = not(is_cd_spell or is_dot_spell) or not(self.casting_spell == spell_label)
+
 	
 	return cd_ready and usable and 
 		( (not_being_cast and not_recently_cast) or (switched_target and not(is_cd_spell) ) )
@@ -500,8 +501,8 @@ end
 function PlayerStatus: setAOEThreshold(targets)
 	self.cleave: setAOEThreshold(targets)
 end
-function PlayerStatus: setCleaveTimeout(cleave, aoe)
-	self.cleave: setTimeout(cleave, aoe)
+function PlayerStatus: setCleaveTimeout(cleave, aoe, spell)
+	self.cleave: setTimeout(cleave, aoe, spell)
 end 
 function PlayerStatus: setPredictCd(predict)
 	self.predict_cd = predict or false

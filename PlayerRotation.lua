@@ -19,6 +19,7 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.next_spell_on_focus = false
 	self.talent = {}
 	self:updateTalent()
+	self.status = {}
 	
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -173,6 +174,7 @@ function PlayerRotation: setAction(spell, conditions, push)
 			self.next_spell_trigger = false
 		end
 	end
+	
 	return (spell_ready and all_conditions_met), spell_ready, all_conditions_met
 end
 function PlayerRotation: setActionFocus(spell, conditions, nospellcheck)

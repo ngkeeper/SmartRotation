@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 81000
 ## Title: SmartRotation
 ## Version: 0.1.1
 ## Notes: DPS Rotation Icon.
@@ -13,4 +13,5 @@ PriestShadow.lua
 DemonhunterHavoc.lua
 PaladinRetribution.lua
 MageFrost.lua
+DruidBalance.lua
 SmartRotation.lua

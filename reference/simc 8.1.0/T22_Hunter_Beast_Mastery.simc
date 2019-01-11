@@ -1,0 +1,87 @@
+hunter="T22_Hunter_Beast_Mastery"
+source=default
+spec=beast_mastery
+level=120
+race=orc
+role=attack
+position=ranged_back
+talents=1303011
+
+# Default consumables
+potion=battle_potion_of_agility
+flask=currents
+food=bountiful_captains_feast
+augmentation=battle_scarred
+
+# This default action priority list is automatically created based on your character.
+# It is a attempt to provide you with a action list that is both simple and practicable,
+# while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
+# Feel free to edit, adapt and improve it to your own needs.
+# SimulationCraft is always looking for updates and improvements to the default action lists.
+
+# Executed before combat begins. Accepts non-harmful actions only.
+actions.precombat=flask
+actions.precombat+=/augmentation
+actions.precombat+=/food
+actions.precombat+=/summon_pet
+# Snapshot raid buffed stats before combat begins and pre-potting is done.
+actions.precombat+=/snapshot_stats
+actions.precombat+=/potion
+# Adjusts the duration and cooldown of Aspect of the Wild and Primal Instincts by the duration of an unhasted GCD when they're used precombat. As AotW has a 1.3s GCD and affects itself this is 1.1s.
+actions.precombat+=/aspect_of_the_wild,precast_time=1.1,if=!azerite.primal_instincts.enabled
+# Adjusts the duration and cooldown of Bestial Wrath and Haze of Rage by the duration of an unhasted GCD when they're used precombat.
+actions.precombat+=/bestial_wrath,precast_time=1.5,if=azerite.primal_instincts.enabled
+
+# Executed every time the actor is available.
+actions=auto_shot
+actions+=/use_items
+actions+=/berserking,if=cooldown.bestial_wrath.remains>30
+actions+=/blood_fury,if=cooldown.bestial_wrath.remains>30
+actions+=/ancestral_call,if=cooldown.bestial_wrath.remains>30
+actions+=/fireblood,if=cooldown.bestial_wrath.remains>30
+actions+=/potion,if=buff.bestial_wrath.up&buff.aspect_of_the_wild.up&(target.health.pct<35|!talent.killer_instinct.enabled)|target.time_to_die<25
+actions+=/barbed_shot,if=pet.cat.buff.frenzy.up&pet.cat.buff.frenzy.remains<=gcd.max|full_recharge_time<gcd.max&cooldown.bestial_wrath.remains
+actions+=/lights_judgment
+actions+=/spitting_cobra
+actions+=/aspect_of_the_wild
+actions+=/a_murder_of_crows,if=active_enemies=1
+actions+=/stampede,if=buff.aspect_of_the_wild.up&buff.bestial_wrath.up|target.time_to_die<15
+actions+=/multishot,if=spell_targets>2&gcd.max-pet.cat.buff.beast_cleave.remains>0.25
+actions+=/bestial_wrath,if=cooldown.aspect_of_the_wild.remains>20|target.time_to_die<15
+actions+=/barrage,if=active_enemies>1
+actions+=/chimaera_shot,if=spell_targets>1
+actions+=/multishot,if=spell_targets>1&gcd.max-pet.cat.buff.beast_cleave.remains>0.25
+actions+=/kill_command
+actions+=/chimaera_shot
+actions+=/a_murder_of_crows
+actions+=/dire_beast
+actions+=/barbed_shot,if=pet.cat.buff.frenzy.down&(charges_fractional>1.8|buff.bestial_wrath.up)|cooldown.aspect_of_the_wild.remains<6&azerite.primal_instincts.enabled|target.time_to_die<9
+actions+=/barrage
+actions+=/cobra_shot,if=(active_enemies<2|cooldown.kill_command.remains>focus.time_to_max)&(focus-cost+focus.regen*(cooldown.kill_command.remains-1)>action.kill_command.cost|cooldown.kill_command.remains>1+gcd)&cooldown.kill_command.remains>1
+actions+=/arcane_torrent
+
+head=crest_of_the_undying_visionary,id=160630,bonus_id=4824/1507/4775,azerite_powers=366/30/44/13
+neck=heart_of_azeroth,id=158075,bonus_id=4929/4930/4936/1536,azerite_level=33
+shoulders=flamesterilized_spaulders,id=160632,bonus_id=4824/1507/4775,azerite_powers=365/31/15/13
+back=plasmaspattered_greatcloak,id=160644,bonus_id=4800/1507
+chest=cthraxxi_generals_hauberk,id=160725,bonus_id=4824/1507/4775,azerite_powers=485/21/85/13
+wrists=rubywrought_sparkguards,id=160629,bonus_id=4800/1507
+hands=oblivion_crushers,id=160721,bonus_id=4800/1507
+waist=titanspark_energy_girdle,id=160633,bonus_id=4800/1507
+legs=blighted_anima_greaves,id=160716,bonus_id=4800/1507
+feet=fused_monstrosity_stompers,id=160628,bonus_id=4800/1507
+finger1=band_of_certain_annihilation,id=160646,bonus_id=4800/1507,enchant=pact_of_haste
+finger2=rotscour_ring,id=160645,bonus_id=4800/1507,enchant=pact_of_haste
+trinket1=galecallers_boon,id=159614,bonus_id=1542/4780
+trinket2=darkmoon_deck_fathoms,id=159125
+main_hand=bow_of_virulent_infection,id=160678,bonus_id=4800/1507,enchant=incendiary_ammunition
+
+# Gear Summary
+# gear_ilvl=383.27
+# gear_agility=4269
+# gear_stamina=7207
+# gear_crit_rating=1035
+# gear_haste_rating=1083
+# gear_mastery_rating=676
+# gear_versatility_rating=211
+# gear_armor=2757

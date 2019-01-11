@@ -68,7 +68,7 @@ function MageFrost:_new()
 	local aoe_targets = 4
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
-	self.player: setCleaveTimeout(3, 3)
+	self.player: setCleaveTimeout(6, 3)
 	self.player: setPredictAll(true) 
 	self.pet_exists = false;
 	self.on_flying_mount = false;

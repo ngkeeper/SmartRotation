@@ -15,6 +15,8 @@ function createPlayer(currentPlayer, enabled)
 		player = PaladinRetribution()
 	elseif (talent == 64) then -- "Frost"
 		player = MageFrost()
+	elseif (talent == 102) then -- "Balance"
+		player = DruidBalance()
 	else
 		player = nil
 	end
