@@ -14,7 +14,8 @@ Now supports: \
 Shadow Priest \
 Havoc Demon Hunter \
 Retribution Paladin \
-Frost Mage
+Frost Mage \
+Balance Druid
 
 Files: \
 SmartRotation.lua:      Main program, creates Bliz UI interfaces \
