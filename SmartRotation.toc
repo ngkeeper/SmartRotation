@@ -1,10 +1,16 @@
 ## Interface: 81000
 ## Title: SmartRotation
-## Version: 0.1.1
+## Version: 0.2.0
 ## Notes: DPS Rotation Icon.
 ## SavedVariablesPerCharacter: SIZE, X, Y
+## OptionalDeps: LibStub, CallbackHandler-1.0, LibRangeCheck-2.0
 
+#@no-lib-strip@
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 libs\LibRangeCheck-2.0\LibRangeCheck-2.0.lua
+#@end-no-lib-strip@
+
 CleaveLog.lua
 LabeledMatrix.lua
 PlayerStatus.lua

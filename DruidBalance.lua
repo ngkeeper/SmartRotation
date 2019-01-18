@@ -62,7 +62,7 @@ function DruidBalance:_new()
 	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
-	self.player: setCleaveTimeout(4, 4)
+	self.player: setTimeout(4)
 	self.player: setPredictAll(true) 
 	--self.enabled = false
 	
@@ -154,7 +154,7 @@ function DruidBalance: updateStatus()
 	s.last_cast = self.player: getLastCast()
 	s.last_cast_time = self.player: getLastCastTime()
 	if s.last_cast_time >= 2 * s.gcd then last_cast = 0 end
-	if s.last_cast == 78674 then self.player:setTargetsHit(1) end		-- stop AOE rotation if starsurge is used
+	if s.last_cast == 78674 then self.player:resetCleave() end		-- stop AOE rotation if starsurge is used
 	
 	s.next_spell_time = self.player: getNextSpellTime() 
 	
@@ -195,10 +195,13 @@ function DruidBalance: updateStatus()
 	s.buff_moonkin_form = self.player: isBuffUp(24858)
 	s.buff_travel_form = self.player: isBuffUp(783)
 	
-	s.buff_solar_empowerment = self.player: isBuffUp(164545)
-	s.buff_stack_solar_empowerment = self.player: getBuffStack(164545)
-	s.buff_lunar_empowerment = self.player: isBuffUp(164547)
-	s.buff_stack_lunar_empowerment = self.player: getBuffStack(164547)
+	--s.buff_solar_empowerment = self.player: isBuffUp(164545)
+	s.buff_stack_solar_empowerment = self.player: getBuffStack(164545) - ( s.casting_solar_wrath and 1 or 0 )
+	s.buff_solar_empowerment = s.buff_stack_solar_empowerment > 0
+	
+	--s.buff_lunar_empowerment = self.player: isBuffUp(164547) 
+	s.buff_stack_lunar_empowerment = self.player: getBuffStack(164547) - ( s.casting_lunar_strike and 1 or 0 )
+	s.buff_lunar_empowerment = s.buff_stack_lunar_empowerment > 0
 	
 	s.buff_starlord = self.player: isBuffUp(279709)
 	s.buff_remain_starlord = self.player: getBuffRemain(279709)
@@ -360,7 +363,7 @@ function DruidBalance: nextSpell()
 	--print(self.player: getLastCast())
 	--print(self.player: getLastCastTime())
 	if DEBUG > 4 then
-		print("SR: Priest Shadow module")
+		print("SR: Balance Druid module")
 		print("SR: Enabled: ".. tostring(self.enabled))
 		print("SR: Next spell: ".. tostring(self.next_spell))
 		print("SR: Tagets hit: ".. tostring(self.player: getCleaveTargets()))

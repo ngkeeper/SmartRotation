@@ -137,7 +137,8 @@ function PlayerRotation: updateIcon(button, overlay, spell)
 	
 	if DEBUG > 0 then 
 		local time_to_kill = math.ceil(self.player: timeToKill())
-		self.text:SetText(time_to_kill > 0 and tostring(time_to_kill) or "")
+		--self.text:SetText(time_to_kill > 0 and tostring(time_to_kill) or "")
+		self.text:SetText(self.player: getCleaveTargets())
 	end
 end
 function PlayerRotation: getRange(unit)

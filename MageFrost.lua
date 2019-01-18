@@ -54,8 +54,8 @@ function MageFrost:_new()
 							190356, 	--"Blizzard"
 							44614,		--"Flurry"
 						  }
-	local cleave_spell 	= {	--84721, 		--"Frozen Orb"
-							--153596,		--"Comet Storm"
+	local cleave_spell 	= {	84721, 		--"Frozen Orb"
+							153596,		--"Comet Storm"
 							190357,		--"Blizzard"
 							--122, 		--"Frost Nova"
 							228598, 	--"Ice Lance"
@@ -68,7 +68,7 @@ function MageFrost:_new()
 	local aoe_targets = 4
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
-	self.player: setCleaveTimeout(6, 3)
+	self.player: setTimeout(4)
 	self.player: setPredictAll(true) 
 	self.pet_exists = false;
 	self.on_flying_mount = false;
@@ -131,6 +131,11 @@ function MageFrost:_new()
 	self.cooldown_cd4: SetSwipeColor(1, 1, 1, .85)
 	self.cooldown_cd4:SetHideCountdownNumbers(false)
 	
+	self.overlay_gs = self.button_cd4:CreateTexture("SR_glacial_spike_overlay")
+	self.overlay_gs:SetAllPoints(self.button_cd4)
+	self.overlay_gs:SetTexture(GetSpellTexture(199786))
+	self.overlay_gs:Hide()
+	
 	self:setSize(60)
 end
 function MageFrost: setSize(size)
@@ -189,6 +194,7 @@ function MageFrost: nextSpell()
 
 	local _, target_distance = self:getRange("target")
 	target_distance = target_distance or -1
+	--print(target_distance)
 	
 	local last_cast = self.player: getLastCast()
 	local last_cast_time = self.player: getLastCastTime()
@@ -391,6 +397,13 @@ function MageFrost: nextSpell()
 		self.overlay_cd3:SetColorTexture(0, .5, 0, 0.6)
 	else
 		self.overlay_cd3:SetColorTexture(0, .5, 0, 0)
+	end
+	if gs_ready and self.next_spell ~= 199786 and not(is_cleave) and talent_splitting_ice and talent_glacial_spike then 
+		--self.cooldown_cd4: Hide()
+		self.overlay_gs: Show()
+	else 
+		--self.cooldown_cd4: Show()
+		self.overlay_gs: Hide()
 	end
 	if DEBUG > 4 then
 		print("SR: Mage frost module")

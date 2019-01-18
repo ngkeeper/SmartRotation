@@ -39,8 +39,8 @@ function PriestShadow:_new()
 						  }
 	local cleave_spell 	= {	49821, 		--"Mind Sear"
 							263346, 	--"Dark Void"
-							--228360, 	--"Void Eruption"
-							--228361, 	--"Void Eruption"
+							228360, 	--"Void Eruption"
+							228361, 	--"Void Eruption"
 							205386 		--"Shadow Crash"
 						  }
 	local cleave_targets = 2
@@ -53,7 +53,7 @@ function PriestShadow:_new()
 	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
-	self.player: setCleaveTimeout(4, 4)
+	self.player: setTimeout(4)
 	self.player: setPredictAll(true) 
 	--self.enabled = false
 	
@@ -165,7 +165,7 @@ function PriestShadow: nextSpell()
 	local last_cast = self.player: getLastCast()
 	local last_cast_time = self.player: getLastCastTime()
 	if last_cast_time >= 2 * gcd then last_cast = 0 end
-	if last_cast == 15407 then self.player:setTargetsHit(1) end		-- stop AOE rotation if mind flay is used
+	if last_cast == 15407 then self.player:resetCleave(1) end		-- stop AOE rotation if mind flay is used
 	
 	local dot_refreshable_shadow_word_pain = self.player: isDotRefreshable(589)	--"Shadow Word: Pain"
 	local dot_refreshable_vampiric_touch = self.player: isDotRefreshable(34914)	--"Vampiric Touch"

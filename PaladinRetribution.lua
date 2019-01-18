@@ -45,7 +45,7 @@ function PaladinRetribution:_new()
 	local cleave_targets = 2
 	local aoe_targets = 3
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
-	self.player: setCleaveTimeout(5, 5)
+	self.player: setTimeout(5)
 	self.player: setPowerType(9) -- 9 is holy power
 	self.player: setPredictAll(true)
 	--self.enabled = false
@@ -152,9 +152,7 @@ function PaladinRetribution: nextSpell()
 	local last_cast = self.player: getLastCast()
 	local last_cast_time = self.player: getLastCastTime()
 	if last_cast_time >= 2 * gcd then last_cast = 0 end
-	-- if last_cast == 53385 then self.player:setTargetsHit(3) end		-- start AOE rotaiton if divine storm used
-	-- disabled, if divine storm did not hit 3 targets, then it is not AOE scenario
-	if last_cast == 85256 then self.player:setTargetsHit(1) end		-- stop AOE rotation if templar's verdict is used
+	if last_cast == 85256 then self.player:resetCleave(1) end		-- stop AOE rotation if templar's verdict is used
 	
 	-- simc variables
 	local HoW = not(talent_hammer_of_wrath) or (health_percentage_target >= 0.2 and (not(buff_avenging_wrath) or not(buff_crusade)))

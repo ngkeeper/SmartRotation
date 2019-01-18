@@ -58,7 +58,7 @@ function DemonhunterHavoc:_new()
     -- end
 	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
-	self.player: setCleaveTimeout(6, 6)
+	self.player: setTimeout(6)
 	self.player: setPredictAll(true)
 	--self.enabled = false
 	-- the main icon is included in PlayerRotation class

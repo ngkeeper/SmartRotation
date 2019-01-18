@@ -95,9 +95,10 @@ function PlayerStatus: update()
 	self: updatePower(self.power_type)
 	self: updateCastingStatus()
 	self: updateNextSpellTime()
+	self.cleave: update()
 end
 function PlayerStatus: updateCombat()
-	self.cleave: update()
+	self.cleave: updateCombat()
 	local timestamp, message, _, _, source_name, _, _, dest_guid, dest_name, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
 	if not message then 
 		return nil 
@@ -501,8 +502,8 @@ end
 function PlayerStatus: setAOEThreshold(targets)
 	self.cleave: setAOEThreshold(targets)
 end
-function PlayerStatus: setCleaveTimeout(cleave, aoe, spell)
-	self.cleave: setTimeout(cleave, aoe, spell)
+function PlayerStatus: setTimeout(timeout)
+	self.cleave: setTimeout(timeout)
 end 
 function PlayerStatus: setPredictCd(predict)
 	self.predict_cd = predict or false
@@ -518,11 +519,8 @@ function PlayerStatus: setPredictAll(predict)
 	self:setPredictBuff(predict)
 	self:setPredictDot(predict)
 end
-function PlayerStatus: setTargetsHit(target)
-	if time() - self.time_manual_cleave_change < self.cd_manual_cleave_change then return nil end
-	--print("Set targets hit to: " .. tostring(target))
-	self.time_manual_cleave_change = time()
-	self.cleave: setTargetsHit(target)
+function PlayerStatus: resetCleave()
+	self.cleave: reset()
 end
 function PlayerStatus: getGCD()
 	return self.gcd
