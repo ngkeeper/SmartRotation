@@ -55,11 +55,6 @@ function DruidBalance:_new()
 	local cleave_targets = 2
 	local aoe_targets = 4
 	
-	-- self:getSpellID(dot_spell)
-	-- self:getSpellID(cd_spell)
-	-- self:getSpellID(casting_spell)
-	-- self:getSpellID(cleave_spell)
-	
 	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
 	
 	self.player: setTimeout(4)
@@ -134,13 +129,13 @@ function DruidBalance: disable()
 end 
 function DruidBalance: updateStatus()
 	local s = self.status
-	
+
 	s.gcd = self.player:getGCD()
-	s.time_to_kill = self.player:timeToKill()
+	s.time_to_kill = self.player:timeToKill() 
 	s.focus_time_to_kill = self.player:timeToKill("focus")
 	s.is_cleave = self.player:isCleave()
 	s.is_aoe = self.player:isAOE()
-	s.targets_hit = self.player: getCleaveTargets()
+	s.targets_hit = math.max(1, self.player: getCleaveTargets())
 	
 	s.talent_natures_balance = (self.talent[1] == 1)
 	s.talent_starlord = (self.talent[5] == 2)
@@ -230,7 +225,7 @@ function DruidBalance: updateStatus()
 	end
 	s.ca_inc_cd_remain = math.max(0, s.ca_inc_cd + s.ca_inc_cd_start - GetTime())
 	
-	s.az_ss = 1
+	s.az_ss = self:getAzeriteRank(122) or 0 	-- Azerite power: streaking stars
 	s.az_ap = 0
 	s.sf_targets = 4
 	if s.talent_twin_moons and s.talent_starlord then s.sf_targets = 5 end
@@ -316,7 +311,12 @@ function DruidBalance: nextSpell()
 	--actions+=/lunar_strike,if=buff.solar_empowerment.stack<3&(ap_check|buff.lunar_empowerment.stack=3)&((buff.warrior_of_elune.up|buff.lunar_empowerment.up|spell_targets>=2&!buff.solar_empowerment.up)&(!variable.az_ss|!buff.ca_inc.up|(!prev.lunar_strike&!talent.incarnation.enabled|prev.solar_wrath))|variable.az_ss&buff.ca_inc.up&prev.solar_wrath)
 	self: setAction(190984, s.az_ss < 3 or not(s.ca_inc.up) or (s.last_cast ~= 190984 and not s.casting_solar_wrath) )	--"Solar Wrath"
 	self: setAction(164815)
-
+	
+	if self.next_spell_trigger == true then 
+		self.next_spell_trigger = false
+		self.next_spell = 190984
+	end
+	
 	----------------------
 	-- display the results
 	self:updateIcon()

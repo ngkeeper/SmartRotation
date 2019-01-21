@@ -21,16 +21,39 @@ function createPlayer(currentPlayer, enabled)
 		player = nil
 	end
 	if player then 
+		-- convert old saved variables to new format
 		if SIZE then 
+			CONFIG = CONFIG or {}
 			player:setSize(SIZE)
-		else
-			SIZE = player:getSize()
+			CONFIG.size = SIZE
 		end
 		if X and Y then 
+			CONFIG = CONFIG or {}
 			player:setPosition(X, Y)
-		else
-			X, Y = player:getPosition()
+			CONFIG.x = X
+			CONFIG.y = Y
 		end
+		
+		-- CONFIG is the new saved variable
+		if CONFIG then 
+			player:setSize(CONFIG.size)
+			player:setPosition(CONFIG.x, CONFIG.y)
+		else
+			CONFIG = {}
+			CONFIG.size = player:getSize()
+			CONFIG.x, CONFIG.y = player:getPosition()
+			CONFIG.focus = false
+		end
+		if not CONFIG.tutorial then 
+			print("|cff00ffff SmartRotation Tutorial |r (for first-run only)")
+			print("|cffffff00 /sr |r -- Show / hide ")
+			print("|cffffff00 /sr size [n] |r -- Adjust size")
+			print("|cffffff00 /sr pos [x] [y] |r -- Adjust position, (0, 0) is the center")
+			print("|cffffff00 /sr focus |r -- Toggle focus tracking")
+			print("|cffffff00 /sr tutorial |r -- Reset tutorial (will show tutorial on your next login).")
+			CONFIG.tutorial = true
+		end
+				
 		if enabled then
 			player:enable()
 		else
@@ -66,13 +89,21 @@ SlashCmdList.SRONOFF = function(msg)
 			table.insert(args, v)
 		end
 		if args[1] == "size" then
-			SIZE = tonumber(args[2]) or SIZE
-			player:setSize(SIZE)
+			CONFIG.size = tonumber(args[2]) or size
+			player:setSize(CONFIG.size)
 		end
 		if args[1] == "position" or args[1] == "pos" then
-			X = tonumber(args[2]) or X
-			Y = tonumber(args[3]) or Y
-			player:setPosition(X, Y)
+			CONFIG.x = tonumber(args[2]) or CONFIG.x
+			CONFIG.y = tonumber(args[3]) or CONFIG.y
+			player:setPosition(CONFIG.x, CONFIG.y)
+		end
+		if args[1] == "focus" then 
+			CONFIG.focus = not CONFIG.focus
+			if CONFIG.focus then 
+				print("SR: Focus module enabled. A yellow icon indicates the spell to be casted on your focus. ")
+			else
+				print("SR: Focus module disabled.")
+			end
 		end
 	end
 end

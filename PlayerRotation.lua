@@ -18,8 +18,10 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.next_spell_trigger = false
 	self.next_spell_on_focus = false
 	self.talent = {}
-	self:updateTalent()
 	self.status = {}
+	
+	self:updateTalent()
+	self.azerite = self:getAzeriteInfo()
 	
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -93,6 +95,43 @@ function PlayerRotation: updateTalent()
 		local column = select(2, GetTalentTierInfo(i, 1))
 		self.talent[i] = column
 	end
+end
+function PlayerRotation: getAzeriteInfo()
+	local azerite = LabeledMatrix()
+	azerite:addRow("rank")
+	
+	local slot = {1, 3, 5}
+	for _, i in ipairs(slot) do
+		local item = Item:CreateFromEquipmentSlot(i)
+		if (not item:IsItemEmpty()) then
+			local itemLoc = ItemLocation:CreateFromEquipmentSlot(i)
+			if itemLoc then  
+				if C_AzeriteEmpoweredItem.IsAzeriteEmpoweredItem(itemLoc) then 
+					local tierInfo = C_AzeriteEmpoweredItem.GetAllTierInfo(itemLoc)
+					for tier, info in pairs(tierInfo) do
+						for _, powerId in pairs(info.azeritePowerIDs) do
+							if C_AzeriteEmpoweredItem.IsPowerSelected(itemLoc, powerId) then 
+								local r = azerite:get("rank", powerId)
+								if not r then 
+									azerite:addColumn(powerId)
+								end
+								--print(tostring(powerId))
+								azerite:update("rank", powerId, ( r or 0 ) + 1)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	return azerite
+end
+function PlayerRotation: getAzeriteRank(powerId)
+	if not powerId then return nil end
+	if not self.azerite then 
+		self.azerite = self:getAzeriteInfo()
+	end
+	return self.azerite: get("rank", powerId)
 end
 function PlayerRotation: updateIcon(button, overlay, spell)
 	overlay = overlay or (not(button) and self.overlay)
@@ -180,6 +219,7 @@ function PlayerRotation: setAction(spell, conditions, push)
 end
 function PlayerRotation: setActionFocus(spell, conditions, nospellcheck)
 	if not self.next_spell_trigger then return nil end
+	if not CONFIG.focus then return nil end
 	
 	local guid_target = UnitGUID("target")
 	local guid_focus = UnitGUID("focus")

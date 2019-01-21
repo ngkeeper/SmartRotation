@@ -2,7 +2,7 @@
 ## Title: SmartRotation
 ## Version: 0.2.0
 ## Notes: DPS Rotation Icon.
-## SavedVariablesPerCharacter: SIZE, X, Y
+## SavedVariablesPerCharacter: CONFIG
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibRangeCheck-2.0
 
 #@no-lib-strip@
