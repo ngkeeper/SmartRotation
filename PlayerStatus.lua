@@ -434,10 +434,24 @@ function PlayerStatus: isDotUp(spell, unit)
 	return dots: get("up", spell)
 end
 
-function PlayerStatus: isDotRefreshable(spell, unit)
+function PlayerStatus: isDotRefreshable(spell, unit, duration)
 	unit = unit or "target"
 	local dots = self.dots
 	if unit == "focus" then dots = self.dots_focus end
+	-- 'duration' is optional 
+	-- if duration is not given, it will default as the full duration of the current dot 
+	-- however, if the current dot is already 130% elongated, the refreshable state estimate will be not accurate
+	if duration then 
+		local dot_up = dots: get("up", spell)
+		local dot_remain = dots: get("expiration", spell)
+		local dot_refreshable = false
+		if not dot_up or dot_remain < duration * 0.3 then 
+			dot_refreshable = true
+		end
+		return dot_refreshable
+	end
+	
+	-- the original 'refreshable' status is based on dynamic duration
 	return dots: get("refreshable", spell)
 end
 function PlayerStatus: setPowerType(powertype)

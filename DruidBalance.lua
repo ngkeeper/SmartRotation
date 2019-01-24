@@ -22,6 +22,7 @@ function DruidBalance:_new()
 							202425, 	--"Warrior of Elune"
 							24858, 		--"Moonkin Form"
 							783, 		--"Travel Form"
+							287790, 	--"Arcanic Pulsar"
 						  }	
     local dot_spell 	= {	164815, 	--"Sunfire"
 							164812, 	--"Moonfire"
@@ -159,7 +160,7 @@ function DruidBalance: updateStatus()
 	s.casting_new_moon = self.player: isSpellCasting(274281)
 	s.casting_half_moon = self.player: isSpellCasting(274282)
 	s.casting_full_moon = self.player: isSpellCasting(274283)
-	
+
 	-- ap_check, ref Hekili v8.1.0-09
 	-- astral_power.current 
 	-- - action.[spell].cost 
@@ -179,12 +180,12 @@ function DruidBalance: updateStatus()
 	
 	s.ap_deficit = 100 - s.ap_predict
 	
-	s.refreshable_sunfire = self.player: isDotRefreshable(164815)
-	s.refreshable_moonfire = self.player: isDotRefreshable(164812)
-	s.refreshable_stellar_flare = self.player: isDotRefreshable(202347)
-	s.focus_refreshable_sunfire = self.player: isDotRefreshable(164815, "focus")
-	s.focus_refreshable_moonfire = self.player: isDotRefreshable(164812, "focus")
-	s.focus_refreshable_stellar_flare = self.player: isDotRefreshable(202347, "focus")
+	s.refreshable_sunfire = self.player: isDotRefreshable(164815, "target", 18)
+	s.refreshable_moonfire = self.player: isDotRefreshable(164812, "target", 22)
+	s.refreshable_stellar_flare = self.player: isDotRefreshable(202347, "target", 24)
+	s.focus_refreshable_sunfire = self.player: isDotRefreshable(164815, "focus", 18)
+	s.focus_refreshable_moonfire = self.player: isDotRefreshable(164812, "focus", 22)
+	s.focus_refreshable_stellar_flare = self.player: isDotRefreshable(202347, "focus", 24)
 	s.dot_moonfire = self.player: isDotUp(164812)
 	
 	s.buff_moonkin_form = self.player: isBuffUp(24858)
@@ -200,7 +201,8 @@ function DruidBalance: updateStatus()
 	
 	s.buff_starlord = self.player: isBuffUp(279709)
 	s.buff_remain_starlord = self.player: getBuffRemain(279709)
-	s.buff_stack_starlord = self.player: getBuffStack(279709)
+	s.buff_stack_starlord = self.player: getBuffStack(279709) or 0
+	s.buff_stack_arcanic_pulsar = self.player: getBuffStack(287790) or 0
 	
 	s.buff_incarnation = self.player: isBuffUp(102560)
 	s.buff_remain_incarnation = self.player: getBuffRemain(102560)
@@ -226,7 +228,9 @@ function DruidBalance: updateStatus()
 	s.ca_inc_cd_remain = math.max(0, s.ca_inc_cd + s.ca_inc_cd_start - GetTime())
 	
 	s.az_ss = self:getAzeriteRank(122) or 0 	-- Azerite power: streaking stars
-	s.az_ap = 0
+	s.az_ap = self:getAzeriteRank(200) or 0		-- Azerite power: arcanic pulsar
+	--print(tostring(s.az_ss).." "..tostring(s.az_ap))
+	
 	s.sf_targets = 4
 	if s.talent_twin_moons and s.talent_starlord then s.sf_targets = 5 end
 	if s.talent_stellar_drift and not(s.talent_starlord) then s.sf_targets = 3 end
@@ -265,14 +269,14 @@ function DruidBalance: nextSpell()
 	local cancel_starlord = self: setAction(93402, {s.buff_starlord, s.buff_remain_starlord < 8, s.ap_deficit < 8})
 	
 	self: setAction(191037, {s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8, s.is_aoe})	--"Starfall"
-	self: setAction(78674, {s.talent_starlord, s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8}) --"Starsurge" buff.arcanic_pulsar.stack<8
-	self: setAction(78674, {not s.talent_starlord, -- (buff.arcanic_pulsar.stack<8|buff.ca_inc.up), 
-							not s.is_aoe, s.buff_stack_lunar_empowerment + s.buff_stack_solar_empowerment < 4, 
-							s.buff_stack_solar_empowerment < 3, s.buff_stack_lunar_empowerment < 3, 
-							s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 78674, 
-							
-							}) --"Starsurge" buff.arcanic_pulsar.stack<8
-	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 )
+	self: setAction(78674, { ( s.talent_starlord and 
+							   ( s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8 and s.buff_stack_arcanic_pulsar < 8) or 
+							   not s.talent_starlord and ( s.buff_stack_arcanic_pulsar < 8 or s.ca_inc_up ) ),
+							   not s.is_aoe, s.buff_stack_lunar_empowerment + s.buff_stack_solar_empowerment < 4, 
+							   s.buff_stack_solar_empowerment < 3, s.buff_stack_lunar_empowerment < 3,
+							   s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 78674 } )  --"Starsurge" 
+
+	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 ) "Starsurge" 
 	
 	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
 							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
@@ -298,9 +302,10 @@ function DruidBalance: nextSpell()
 	-- setActionFocus() will not register the event if the spell is already being cast 
 	-- however, if player is casting stellar flare on 'target', SR should still prompt player to cast on 'focus'
 	
-	self: setAction(274281, s.ap_deficit >= 10)	--"New Moon"
-	self: setAction(274282, s.ap_deficit >= 20)	--"Half Moon"
-	self: setAction(274283, s.ap_deficit >= 40)	--"Full Moon"
+	local not_casting_moon = not ( s.casting_new_moon or s.casting_half_moon or s.casting_full_moon )
+	self: setAction(274281, {s.ap_deficit >= 10, not_casting_moon})	--"New Moon"
+	self: setAction(274282, {s.ap_deficit >= 20, not_casting_moon})	--"Half Moon"
+	self: setAction(274283, {s.ap_deficit >= 40, not_casting_moon})	--"Full Moon"
 	self: setAction(194153, {s.buff_stack_solar_empowerment < 3, 
 							 s.ap_deficit >= 12 or s.buff_stack_lunar_empowerment == 3, 
 							 (s.buff_warrior_of_elune or s.buff_lunar_empowerment or s.is_cleave and not s.buff_solar_empowerment) and 
@@ -309,7 +314,7 @@ function DruidBalance: nextSpell()
 							 or s.az_ss > 0 and s.ca_inc_up and (s.last_cast == 190984 or s.casting_solar_wrath) and not s.casting_lunar_strike }
 							 )	--"Lunar Strike"
 	--actions+=/lunar_strike,if=buff.solar_empowerment.stack<3&(ap_check|buff.lunar_empowerment.stack=3)&((buff.warrior_of_elune.up|buff.lunar_empowerment.up|spell_targets>=2&!buff.solar_empowerment.up)&(!variable.az_ss|!buff.ca_inc.up|(!prev.lunar_strike&!talent.incarnation.enabled|prev.solar_wrath))|variable.az_ss&buff.ca_inc.up&prev.solar_wrath)
-	self: setAction(190984, s.az_ss < 3 or not(s.ca_inc.up) or (s.last_cast ~= 190984 and not s.casting_solar_wrath) )	--"Solar Wrath"
+	self: setAction(190984, s.az_ss < 3 or not(s.ca_inc_up) or (s.last_cast ~= 190984 and not s.casting_solar_wrath) )	--"Solar Wrath"
 	self: setAction(164815)
 	
 	if self.next_spell_trigger == true then 

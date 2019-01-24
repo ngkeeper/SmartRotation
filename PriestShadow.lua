@@ -167,10 +167,10 @@ function PriestShadow: nextSpell()
 	if last_cast_time >= 2 * gcd then last_cast = 0 end
 	if last_cast == 15407 then self.player:resetCleave(1) end		-- stop AOE rotation if mind flay is used
 	
-	local dot_refreshable_shadow_word_pain = self.player: isDotRefreshable(589)	--"Shadow Word: Pain"
-	local dot_refreshable_vampiric_touch = self.player: isDotRefreshable(34914)	--"Vampiric Touch"
-	local dot_refreshable_focus_shadow_word_pain = self.player: isDotRefreshable(589, "focus")	--"Shadow Word: Pain"
-	local dot_refreshable_focus_vampiric_touch = self.player: isDotRefreshable(34914, "focus")	--"Vampiric Touch"
+	local dot_refreshable_shadow_word_pain = self.player: isDotRefreshable(589, "target", 16)	--"Shadow Word: Pain"
+	local dot_refreshable_vampiric_touch = self.player: isDotRefreshable(34914, "target", 21)	--"Vampiric Touch"
+	local dot_refreshable_focus_shadow_word_pain = self.player: isDotRefreshable(589, "focus", 16)	--"Shadow Word: Pain"
+	local dot_refreshable_focus_vampiric_touch = self.player: isDotRefreshable(34914, "focus", 21)	--"Vampiric Touch"
 	
 	local dot_remain_shadow_word_pain = self.player:getDotRemain(589)	--"Shadow Word: Pain"
 	local dot_remain_vampiric_touch = self.player:getDotRemain(34914)	--"Vampiric Touch"
