@@ -149,8 +149,13 @@ function DruidBalance: updateStatus()
 	
 	s.last_cast = self.player: getLastCast()
 	s.last_cast_time = self.player: getLastCastTime()
-	if s.last_cast_time >= 2 * s.gcd then last_cast = 0 end
-	if s.last_cast == 78674 then self.player:resetCleave() end		-- stop AOE rotation if starsurge is used
+	if s.last_cast_time >= 2 * s.gcd then s.last_cast = 0 end
+	if s.last_cast == 78674 and not s.single_target_lock then 	-- stop AOE rotation if starsurge is used
+		--self.player:resetCleave() 
+		s.single_target_timer = GetTime() + 4
+	end	
+	s.single_target_timer = s.single_target_timer or GetTime()
+	s.single_target_lock = ( GetTime() - s.single_target_timer ) < 0
 	
 	s.next_spell_time = self.player: getNextSpellTime() 
 	
@@ -268,14 +273,15 @@ function DruidBalance: nextSpell()
 	
 	local cancel_starlord = self: setAction(93402, {s.buff_starlord, s.buff_remain_starlord < 8, s.ap_deficit < 8})
 	
-	self: setAction(191037, {s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8, s.is_aoe})	--"Starfall"
-	self: setAction(78674, { ( s.talent_starlord and 
-							   ( s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8 and s.buff_stack_arcanic_pulsar < 8) or 
-							   not s.talent_starlord and ( s.buff_stack_arcanic_pulsar < 8 or s.ca_inc_up ) ),
-							   not s.is_aoe, s.buff_stack_lunar_empowerment + s.buff_stack_solar_empowerment < 4, 
-							   s.buff_stack_solar_empowerment < 3, s.buff_stack_lunar_empowerment < 3,
-							   s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 78674 } )  --"Starsurge" 
-
+	self: setAction(191037, {s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8, s.is_aoe, not s.single_target_lock})	--"Starfall"
+	local _, _, condSS = self: setAction(78674, { s.talent_starlord and 
+							 ( s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8 and s.buff_stack_arcanic_pulsar < 8) or 
+							 not s.talent_starlord and ( s.buff_stack_arcanic_pulsar < 8 or s.ca_inc_up ) ,
+							 s.single_target_lock or not s.is_aoe, s.buff_stack_lunar_empowerment + s.buff_stack_solar_empowerment < 4, 
+							 s.buff_stack_solar_empowerment < 3, s.buff_stack_lunar_empowerment < 3,
+							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 78674 } )  --"Starsurge" 
+	--print(condSS)
+	
 	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 ) "Starsurge" 
 	
 	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
