@@ -101,6 +101,11 @@ function DruidBalance: createGraphics()
 	self.texture_cancel:SetVertexColor(1, 1, 1, 1)
 	self.texture_cancel:Hide()
 	
+	--self.foo = self:createIcon(GetSpellTexture(93402), 50, 100, 0, true)
+	--self:iconColor(self.foo, .5, 1, 1, 1)
+	--self:iconCooldown(self.foo, GetTime(), 10)
+	--self:iconGlow(self.foo)
+	
 	self:setSize()
 end
 function DruidBalance: setSize(size)
@@ -129,6 +134,7 @@ function DruidBalance: disable()
 	self.button_cds: Hide()
 end 
 function DruidBalance: updateStatus()
+
 	local s = self.status
 
 	s.gcd = self.player:getGCD()
@@ -284,16 +290,16 @@ function DruidBalance: nextSpell()
 	
 	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 ) "Starsurge" 
 	
-	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
+	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * max(2, s.targets_hit) > 6, s.ap_deficit >= 3, 
 							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
-	self: setActionFocus(164815, {s.focus_refreshable_sunfire, s.focus_time_to_kill * s.targets_hit > 6, s.ap_deficit >= 3, 
+	self: setActionFocus(164815, {s.focus_refreshable_sunfire, s.focus_time_to_kill * max(2, s.targets_hit) > 6, s.ap_deficit >= 3, 
 							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
 	
-	self: setAction(164812, {s.refreshable_moonfire, s.time_to_kill * s.targets_hit > 9, s.ap_deficit >= 3, 
+	self: setAction(164812, {s.refreshable_moonfire, s.time_to_kill * max(2, s.targets_hit) > 9, s.ap_deficit >= 3, 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
-	self: setActionFocus(164812, {s.focus_refreshable_moonfire, s.focus_time_to_kill * s.targets_hit > 9, s.ap_deficit >= 3, 
+	self: setActionFocus(164812, {s.focus_refreshable_moonfire, s.focus_time_to_kill * max(2, s.targets_hit) > 9, s.ap_deficit >= 3, 
 							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
 	
 	local stellar_flare_conditions = s.refreshable_stellar_flare and 

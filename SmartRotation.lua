@@ -1,6 +1,6 @@
 DEBUG = 0
 
-local refresh = 10		-- refresh rate, Hz
+local refresh = 5	-- refresh rate, Hz
 
 -- player object creation function
 function createPlayer(currentPlayer, enabled)
@@ -17,41 +17,43 @@ function createPlayer(currentPlayer, enabled)
 		player = MageFrost()
 	elseif (talent == 102) then -- "Balance"
 		player = DruidBalance()
+	elseif (talent == 103) then -- "Feral"
+		player = DruidFeral()
 	else
 		player = nil
 	end
 	if player then 
 		-- convert old saved variables to new format
 		if SIZE then 
-			CONFIG = CONFIG or {}
+			SRSRCONFIG = SRSRCONFIG or {}
 			player:setSize(SIZE)
-			CONFIG.size = SIZE
+			SRCONFIG.size = SIZE
 		end
 		if X and Y then 
-			CONFIG = CONFIG or {}
+			SRCONFIG = SRCONFIG or {}
 			player:setPosition(X, Y)
-			CONFIG.x = X
-			CONFIG.y = Y
+			SRCONFIG.x = X
+			SRCONFIG.y = Y
 		end
 		
-		-- CONFIG is the new saved variable
-		if CONFIG then 
-			player:setSize(CONFIG.size)
-			player:setPosition(CONFIG.x, CONFIG.y)
+		-- SRCONFIG is the new saved variable
+		if SRCONFIG then 
+			player:setSize(SRCONFIG.size)
+			player:setPosition(SRCONFIG.x, SRCONFIG.y)
 		else
-			CONFIG = {}
-			CONFIG.size = player:getSize()
-			CONFIG.x, CONFIG.y = player:getPosition()
-			CONFIG.focus = false
+			SRCONFIG = {}
+			SRCONFIG.size = player:getSize()
+			SRCONFIG.x, SRCONFIG.y = player:getPosition()
+			SRCONFIG.focus = false
 		end
-		if not CONFIG.tutorial then 
+		if not SRCONFIG.tutorial then 
 			print("|cff00ffff SmartRotation Tutorial |r (for first-run only)")
 			print("|cffffff00 /sr |r -- Show / hide ")
 			print("|cffffff00 /sr size [n] |r -- Adjust size")
 			print("|cffffff00 /sr pos [x] [y] |r -- Adjust position, (0, 0) is the center")
 			print("|cffffff00 /sr focus |r -- Toggle focus tracking")
 			print("|cffffff00 /sr tutorial |r -- Reset tutorial (will show tutorial on your next login).")
-			CONFIG.tutorial = true
+			SRCONFIG.tutorial = true
 		end
 				
 		if enabled then
@@ -61,6 +63,40 @@ function createPlayer(currentPlayer, enabled)
 		end
 	end
 	return player
+end
+
+function printTable ( t )  
+    local printTable_cache={}
+    local function sub_printTable(t,indent)
+        if (printTable_cache[tostring(t)]) then
+            print(indent.."*"..tostring(t))
+        else
+            printTable_cache[tostring(t)]=true
+            if (type(t)=="table") then
+                for pos,val in pairs(t) do
+                    if (type(val)=="table") then
+                        print(indent.."["..pos.."] => "..tostring(t).." {")
+                        sub_printTable(val,indent..string.rep(" ",string.len(pos)+8))
+                        print(indent..string.rep(" ",string.len(pos)+6).."}")
+                    elseif (type(val)=="string") then
+                        print(indent.."["..pos..'] => "'..val..'"')
+                    else
+                        print(indent.."["..pos.."] => "..tostring(val))
+                    end
+                end
+            else
+                print(indent..tostring(t))
+            end
+        end
+    end
+    if (type(t)=="table") then
+        print(tostring(t).." {")
+        sub_printTable(t,"  ")
+        print("}")
+    else
+        sub_printTable(t,"  ")
+    end
+    print()
 end
 
 local player
@@ -89,21 +125,25 @@ SlashCmdList.SRONOFF = function(msg)
 			table.insert(args, v)
 		end
 		if args[1] == "size" then
-			CONFIG.size = tonumber(args[2]) or size
-			player:setSize(CONFIG.size)
+			SRCONFIG.size = tonumber(args[2]) or size
+			player:setSize(SRCONFIG.size)
 		end
 		if args[1] == "position" or args[1] == "pos" then
-			CONFIG.x = tonumber(args[2]) or CONFIG.x
-			CONFIG.y = tonumber(args[3]) or CONFIG.y
-			player:setPosition(CONFIG.x, CONFIG.y)
+			SRCONFIG.x = tonumber(args[2]) or SRCONFIG.x
+			SRCONFIG.y = tonumber(args[3]) or SRCONFIG.y
+			player:setPosition(SRCONFIG.x, SRCONFIG.y)
 		end
 		if args[1] == "focus" then 
-			CONFIG.focus = not CONFIG.focus
-			if CONFIG.focus then 
+			SRCONFIG.focus = not SRCONFIG.focus
+			if SRCONFIG.focus then 
 				print("SR: Focus module enabled. A yellow icon indicates the spell to be casted on your focus. ")
 			else
 				print("SR: Focus module disabled.")
 			end
+		end
+		if args[1] == "debug" then 
+			if args[2] == "buff" then printTable(player.variables.buff) end
+			if args[2] == "dot" then printTable(player.variables.dot) end
 		end
 	end
 end
@@ -134,6 +174,7 @@ f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 f:SetScript("OnEvent", function(self, event, ...)
 	---------------------------
 	-- for development use only
+	
 	-- print damage spells
 	-- local _, message, _, _, source_name, _, _, _, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
 	-- local player_name = UnitName("player")
@@ -168,7 +209,7 @@ f:SetScript("OnUpdate", function(self, ...)
 	if timestamp - last_refresh > 1 / refresh then 
 		---------------------------
 		-- for development use only
-
+		
 		---------------------------
 		
 		last_refresh = timestamp

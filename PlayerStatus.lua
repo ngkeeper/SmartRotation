@@ -498,6 +498,9 @@ end
 function PlayerStatus: getLastCastTime()
 	return time() - self.last_cast_time
 end
+function PlayerStatus: targetsHit()
+	return self.cleave: targetsHit()
+end
 function PlayerStatus: isCleave()
 	return self.cleave: isCleave()
 end

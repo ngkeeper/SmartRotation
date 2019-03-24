@@ -14,7 +14,9 @@ function PriestShadow:_new()
 	-- all spells are case-sensitive
 	-- (this will be improved in the future)
 	local gcd_spell 	= 	589 		--"Shadow Word: Pain"    -- can be any zero-cooldown spell
-	local buff_spell 	= { 194249 }	--"Voidform"
+	local buff_spell 	= { 194249,		--"Voidform"
+							288343, 	--"Thought Harvester"
+							}	
     local dot_spell 	= {	589, 		--"Shadow Word: Pain"
 							34914 		--"Vampiric Touch"
 						  }
@@ -43,7 +45,7 @@ function PriestShadow:_new()
 							228361, 	--"Void Eruption"
 							205386 		--"Shadow Crash"
 						  }
-	local cleave_targets = 2
+	local cleave_targets = 3
 	local aoe_targets = 5
 	
 	-- self:getSpellID(dot_spell)
@@ -146,7 +148,10 @@ function PriestShadow: nextSpell()
 	local adds_coming = false	-- there's no way to predict if adds are coming
 	local gcd = self.player:getGCD()
 	local time_to_kill = self.player:timeToKill()
-	local is_cleave = self.player:isCleave()
+	--local is_cleave = self.player:isCleave()
+	
+	local buff_thought_harvester = self.player: isBuffUp(288343)
+	local is_cleave = self.player:targetsHit() >= 3 - (buff_thought_harvester and 1 or 0 )
 	local is_aoe = self.player:isAOE()
 	
 	local talent_shadow_word_void = (self.talent[1] == 3)

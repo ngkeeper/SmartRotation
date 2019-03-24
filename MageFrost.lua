@@ -266,7 +266,7 @@ function MageFrost: nextSpell()
 		fo_action = self:setAction(84714, 1)	-- frozen orb
 		blz_action = self:setAction(190356, true, 1)	-- blizzard
 		cs_action = self:setAction(153595, {not fo_action, not casting_blizzard}, 1)	-- comet storm
-		self:setAction(157997)	-- ice nova
+		--self:setAction(157997)	-- ice nova
 		self:setAction(44614, {not(talent_glacial_spike), (casting_ebonbolt or last_cast == 257537)
 			or ((casting_frostbolt or last_cast == 116) and buff_brain_freeze) })	-- flurry
 		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, buff_remain_brain_freeze < time_flurry_gs})	-- flurry, brain freeze can't sustain until gs 
@@ -275,7 +275,7 @@ function MageFrost: nextSpell()
 			( (casting_ebonbolt or last_cast == 257537) and buff_stack_icicles < 4 ) or 
 			( (casting_frostbolt or last_cast == 116) and buff_stack_icicles < 4 )} )	-- flurry
 		self:setAction(30455, buff_fingers_of_frost)	-- ice lance
-		self:setAction(205021) 	-- ray of frost
+		--self:setAction(205021) 	-- ray of frost
 		self:setAction(257537, time_to_kill > 5) 	-- ebonbolt
 		_, _, gs_condition = self:setAction(199786, buff_brain_freeze or (casting_ebonbolt or last_cast == 257537)
 			or (is_cleave and talent_splitting_ice), 1 )	-- glacial spike
@@ -287,7 +287,7 @@ function MageFrost: nextSpell()
 		self:setAction(120, {target_distance <= 12, target_distance >= 0})	-- cone of cold
 		self:setAction(116)		-- frost bolt
 	else
-		self:setAction(157997, debuff_winters_chill) -- ice nova
+		--self:setAction(157997, debuff_winters_chill) -- ice nova
 		self:setAction(44614, {not(talent_glacial_spike), (casting_ebonbolt or last_cast == 257537)
 			or ((casting_frostbolt or last_cast == 116) and buff_brain_freeze) })	-- flurry
 		self:setAction(44614, {talent_glacial_spike, buff_brain_freeze, buff_remain_brain_freeze < time_flurry_gs})	-- flurry, brain freeze can't sustain until gs 
@@ -301,7 +301,7 @@ function MageFrost: nextSpell()
 		cs_action = self:setAction(153595, {not fo_action, time_to_kill > 10}, 1)	-- comet storm
 		self:setAction(257537, {( not(talent_glacial_spike) or (buff_stack_icicles == 5) ),
 			not(buff_brain_freeze), time_to_kill > time_flurry_gs + gcd * 2} )	-- ebonbolt
-		self:setAction(205021, {not(buff_fingers_of_frost), last_cast ~= 84714})	-- ray of frost
+		--self:setAction(205021, {not(buff_fingers_of_frost), last_cast ~= 84714})	-- ray of frost
 		self:setAction(190356, {is_cleave, buff_freezing_rain})	-- blizzard
 		_, _, gs_condition = self:setAction(199786, buff_brain_freeze or (casting_ebonbolt or last_cast == 257537)
 			or (is_cleave and talent_splitting_ice), 1 )	-- glacial spike
@@ -310,7 +310,7 @@ function MageFrost: nextSpell()
 			self.next_spell = 199786
 			self.next_spell_trigger = false
 		end
-		self:setAction(157997)	-- ice nova
+		--self:setAction(157997)	-- ice nova
 		self:setAction(44614, {not(buff_brain_freeze), false})	-- flurry, false = buff.winters_reach.react
 		self:setAction(116)		-- frost bolt
 	end

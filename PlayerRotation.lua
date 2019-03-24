@@ -19,6 +19,7 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.next_spell_on_focus = false
 	self.talent = {}
 	self.status = {}
+	self.icons = {}
 	
 	self:updateTalent()
 	self.azerite = self:getAzeriteInfo()
@@ -34,6 +35,7 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.button: Disable()
 	self.button: SetNormalTexture(self.button: GetHighlightTexture())
 	self.button: Show()
+	--self.button = self:createIcon(nil, self.size, 0, 0)
 	
 	self.text = self.button:CreateFontString("SR_main_button_text","OVERLAY")
 	self.text:SetFont("Fonts\\FRIZQT__.ttf", 24, "THICKOUTLINE")
@@ -47,12 +49,67 @@ function PlayerRotation: _new(gcd_spell, buff_spell, dot_spell, cd_spell, castin
 	self.overlay:SetAllPoints(self.button)
 	self.overlay:SetColorTexture(.5, .5, 0, 0)
 
-	self:setSize()
+	self:refreshUI()
 end
-
+function PlayerRotation: createIcon(texture, size, x, y, cd)
+	local icon = {}
+	--icon.name = name
+	icon.texture = texture
+	icon.size = size or 50
+	icon.x = x or 0
+	icon.y = y or 0
+	
+	icon.UIFrame = CreateFrame("Frame", nil, UIParent)
+	icon.UIFrame:SetFrameStrata("BACKGROUND")
+	icon.UIFrame:SetWidth(icon.size)
+	icon.UIFrame:SetHeight(icon.size)
+	
+	icon.UITexture = icon.UIFrame:CreateTexture(nil,"MEDIUM")
+	icon.UITexture:SetTexture(icon.texture)
+	icon.UITexture:SetAllPoints(icon.UIFrame)
+	
+	if cd then 
+		icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
+		icon.UICd:SetAllPoints(icon.UIFrame)
+		icon.UICd:SetDrawEdge(false)
+		icon.UICd:SetSwipeColor(1, 1, 1, .85)
+		icon.UICd:SetHideCountdownNumbers(false)
+	end
+	
+	table.insert(self.icons, icon)
+	
+	self:refreshUI()
+	return #self.icons
+end
+function PlayerRotation: iconConfig(icon, texture, size, x, y)
+	icon.texture = texture or icon.texture
+	icon.size = size or icon.size
+	icon.x = x or icon.x
+	icon.y = y or icon.y
+	self:refreshUI()
+end
+function PlayerRotation: iconCooldown(icon, start, duration)
+	self.icons[icon].UICd:SetCooldown(start, duration)
+end
+function PlayerRotation: iconGlow(icon)
+	ActionButton_ShowOverlayGlow(self.icons[icon].UIFrame)
+end
+function PlayerRotation: iconHideGlow(icon)
+	ActionButton_HideOverlayGlow(self.icons[icon].UIFrame)
+end
+function PlayerRotation: iconColor(icon, r, g, b, alpha)
+	r = r or 1
+	g = g or 1
+	b = b or 1
+	alpha = alpha or 1
+	self.icons[icon].UITexture:SetVertexColor(r, g, b, alpha)
+end
 
 function PlayerRotation: enable()
 	self.button: Show()
+	for _, v in ipairs(self.icons) do
+		v.UIFrame: Show()
+	end
 	self.enabled = true
 end
 function PlayerRotation: isEnabled()
@@ -61,14 +118,15 @@ end
 
 function PlayerRotation: disable()
 	self.button: Hide()
+	for _, v in ipairs(self.icons) do
+		v.UIFrame: Hide()
+	end
 	self.enabled = false
 end
 function PlayerRotation: setSize(size)
 	self.size = size or self.size
 	self.ui_ratio = self.size / 50
-	self.button: SetSize(self.size,self.size)
-	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y)
-	self.text: SetPoint("CENTER", 2 * self.ui_ratio, 40 * self.ui_ratio)
+	self:refreshUI()
 end
 function PlayerRotation: getSize()
 	return self.size
@@ -76,10 +134,24 @@ end
 function PlayerRotation: setPosition(x, y)
 	self.anchor_x = x or self.anchor_x
 	self.anchor_y = y or self.anchor_y
-	self:setSize()
+	self:refreshUI()
 end
 function PlayerRotation: getPosition()
 	return self.anchor_x, self.anchor_y
+end
+function PlayerRotation: refreshUI()
+	self.button: SetSize(self.size,self.size)
+	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y)
+	self.button: Show()
+	self.text: SetPoint("CENTER", 2 * self.ui_ratio, 40 * self.ui_ratio)
+	
+	for _, v in ipairs(self.icons) do
+		v.UIFrame: SetWidth(v.size * self.ui_ratio)
+		v.UIFrame: SetHeight(v.size * self.ui_ratio)
+		v.UIFrame: SetPoint("CENTER", self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
+		v.UIFrame: Show()
+	end
+
 end
 function PlayerRotation: update()
 	if not self.enabled then return nil end
@@ -219,7 +291,7 @@ function PlayerRotation: setAction(spell, conditions, push)
 end
 function PlayerRotation: setActionFocus(spell, conditions, nospellcheck)
 	if not self.next_spell_trigger then return nil end
-	if not CONFIG.focus then return nil end
+	if not SRCONFIG.focus then return nil end
 	
 	local guid_target = UnitGUID("target")
 	local guid_focus = UnitGUID("focus")
