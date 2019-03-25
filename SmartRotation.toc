@@ -12,12 +12,17 @@ libs\LibRangeCheck-2.0\LibRangeCheck-2.0.lua
 #@end-no-lib-strip@
 
 CleaveLog.lua
+CleaveLog2.lua
 LabeledMatrix.lua
+Player.lua
+SpellStatus.lua
 PlayerStatus.lua
+Specialization.lua
 PlayerRotation.lua
 PriestShadow.lua
 DemonhunterHavoc.lua
 PaladinRetribution.lua
 MageFrost.lua
 DruidBalance.lua
+DruidFeral.lua
 SmartRotation.lua
