@@ -16,7 +16,8 @@ function SpellStatus: _new(spells)
 	-- spells.buff		Buff ids. Can be different from the spell that applies it.
 	-- spells.dot		Dot/debuff ids. Can be different from the spell that applies it.
 	-- spells.cd		Spells with cooldown (and need to be tracked).
-	-- spells.blacklist Blacklisted spells (used to filter combat logs)
+	-- spells.casting	Non-instant spells. Adds a little delay to the system casting status
+	--					to prevent lags
 	
 	self.gcd = 1.5
 	-- if cd of a spell < gcd + reaction, cd is considered 0
@@ -44,16 +45,14 @@ function SpellStatus: _new(spells)
 	self.cds: addRow({"up", "remain", "charge"})
 	self.cds: addColumn(self.spells.cd)
 	
-	self.previous = {}
-	self.previous.spell = nil
-	self.previous.target = nil
-	self.previous.time = nil
+	self.last_cast_spell = nil
+	self.last_cast_time = time()
+	self.last_cast_target = nil
 	
-	self.casting = {}
-	self.casting.spell = nil
-	self.casting.start = nil
-	self.casting.finish = nil
-	self.casting.target_GUID = nil	-- Combat log does not give destination for SPELL_CAST_START
+	self.spells.casting = nil
+	self.casting_time = nil
+	self.casting_start = time()
+	self.casting_target_GUID = nil	-- Combat log does not give destination for SPELL_CAST_START
 									-- Using current target as an estimation
 	self.casting_last_check = GetTime()
 	
@@ -84,19 +83,26 @@ function SpellStatus: updateCombat()
 	
 	local player_name = UnitName("player")
 	if source_name == player_name then
-		--print(tostring(self:isBlacklisted(spell_id)).." "..tostring(spell_name).." "..tostring(spell_id).." "..tostring(message))
-		if message == "SPELL_CAST_SUCCESS" and not self:isBlacklisted(spell_id) then --or "SPELL_AURA_APPLIED" then 
-			--print(tostring(spell_name).." "..tostring(spell_id))
-			self.previous.spell = spell_id
-            self.previous.time = timestamp
+		--print(message..spell_name)
+		-- This is not a good way to get casting status
+		-- The combat log has a significant delay (over 0.5 seconds in Ogrimmar)
+		-- if message == "SPELL_CAST_START" then 
+			-- self.spells.casting = spell_id
+			-- self.casting_start = timestamp
+			-- self.casting_target_GUID = UnitGUID("target")
+			-- self.casting_time = (select(4, GetSpellInfo(self.spells.casting)) / 1000 ) or 0
+		-- end
+		if message == "SPELL_CAST_SUCCESS" then --or "SPELL_AURA_APPLIED" then 
+			self.last_cast_spell = spell_id
+            self.last_cast_time = timestamp
 			local target_guid = UnitGUID("target")
 			local focus_guid = UnitGUID("focus")
 			if dest_guid == target_guid then 
-				self.previous.target = "target"
+				self.last_cast_target = "target"
 			elseif dest_guid == focus_guid then 
-				self.previous.target = "focus"
+				self.last_cast_target = "focus"
 			else
-				self.previous.target = nil
+				self.last_cast_target = nil
 			end
         end
 	end
@@ -113,29 +119,29 @@ function SpellStatus: updateNextSpellTime()
 	local gcd_start, gcd = GetSpellCooldown(self.spells.gcd)
 	local time_gcd = gcd_start > 0 and ( gcd + gcd_start - GetTime() ) or 0
 	local time_casting = 0
-	if self.casting.spell then 
-		time_casting = self.casting.finish - GetTime()
+	if self.spells.casting then 
+		time_casting = self.casting_end - GetTime()
 	end
 	self.next_spell_time = math.max(time_gcd, time_casting)
 end
 
 function SpellStatus: updateCastingStatus()
-	--print(tostring(self.casting.spell).." "..tostring(self.casting_target_GUID))
+	--print(tostring(self.spells.casting).." "..tostring(self.casting_target_GUID))
 	local _, _, _, uci_start, uci_end, _, _, _, uci_spellid = UnitCastingInfo("player")
 	if uci_spellid and uci_start and uci_end then 
 		self.casting_last_check = GetTime()
-		if math.abs(uci_start / 1000 - (self.casting.start or 0) ) > 0.1 then 
-			self.casting.spell = uci_spellid
-			self.casting.start = uci_start / 1000
-			self.casting.finish = uci_end / 1000
-			self.casting.target_GUID = UnitGUID("target")
+		if math.abs(uci_start / 1000 - (self.casting_start or 0) ) > 0.1 then 
+			self.spells.casting = uci_spellid
+			self.casting_start = uci_start / 1000
+			self.casting_end = uci_end / 1000
+			self.casting_target_GUID = UnitGUID("target")
 		end
 	end
 	if GetTime() - self.casting_last_check > 0.3 then 	-- 0.3 to handle some latency
-		self.casting.spell = nil
-		self.casting.start = nil
-		self.casting.finish = nil
-		self.casting.target_GUID = nil
+		self.spells.casting = nil
+		self.casting_start = nil
+		self.casting_end = nil
+		self.casting_target_GUID = nil
 	end
 	
 end
@@ -263,14 +269,8 @@ function SpellStatus: updateCd()
 	--self.cds: printMatrix()
 end
 
-function SpellStatus: isCasting(spell, uci)
-	-- the default option has ~300ms delay
-	-- this feature is to prevent the "gap"
-	-- that exists between "end of cast" and "spell lands"
-	-- use 'uci' for no-delay cast prediction
-	if not uci then return (spell == self.casting.spell) end
-	
-	-- if 'uci' is defined
+function SpellStatus: isSpellCasting(spell, uci)
+	if not uci then return (spell == self.spells.casting) end
 	local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo("player")
 	if uci_spell then 
 		local casting = uci_spell
@@ -281,6 +281,21 @@ function SpellStatus: isCasting(spell, uci)
 	end
 end
 
+function SpellStatus: isSpellCastingNoDelay(spell)
+	-- self:isSpellCasting() has ~300ms delay
+	-- this feature is to prevent the "gap"
+	-- that exists between "end of cast" and "spell lands"
+	-- use this function for no-delay cast prediction
+	
+	local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo("player")
+	if uci_spell then 
+		local casting = uci_spell
+		if type(spell) == "number" then casting = uci_spell_id end
+		return ( spell == casting )
+	else 
+		return false 
+	end
+end
 
 function SpellStatus: isSpellReady(spell)
 	-- for some reason, IsUsableSpell(spell_id)
@@ -300,11 +315,10 @@ function SpellStatus: isSpellReady(spell)
 	else
 		cd_ready = self.cds: get("up", spell_label)
 	end
-	local usable, nomana = IsUsableSpell(spell)
-	usable = usable or nomana
-	local not_being_cast = not(self: isCasting(spell)) 
-	local switched_target = (UnitGUID("target") ~= self.casting.target_GUID)
-	local not_recently_cast = not(is_cd_spell or is_dot_spell) or not(self.casting.spell == spell_label)
+	local usable = select(1, IsUsableSpell(spell))
+	local not_being_cast = not(self: isSpellCasting(spell)) 
+	local switched_target = (UnitGUID("target") ~= self.casting_target_GUID)
+	local not_recently_cast = not(is_cd_spell or is_dot_spell) or not(self.spells.casting == spell_label)
 
 	
 	return cd_ready and usable and 
@@ -312,13 +326,7 @@ function SpellStatus: isSpellReady(spell)
 end 
 
 
-function SpellStatus: cooldown(spell)
-	local cd = {}
-	cd.charge = self.cds: get("charge", spell)
-	cd.remain = self.cds: get("remain", spell)
-	cd.up = self.cds: get("up", spell)
-	return cd
-end
+
 
 function SpellStatus: spellCharge(spell)
 	return self.cds: get("charge", spell)
@@ -348,11 +356,11 @@ function SpellStatus: buffRemain(spell)
 	return self.buffs: get("expiration", spell)
 end
 
-function SpellStatus: dot(spell, duration, unit)
+function SpellStatus: dot(spell, unit, duration)
 	local d = {}
 	d.up = self:dotUp(spell, unit)
+	d.refreshable = self:dotUp(spell, unit, duration)
 	d.remain = self:dotRemain(spell, unit)
-	d.refreshable = self:dotRefreshable(spell, unit, duration)
 	return d
 end
 
@@ -391,24 +399,16 @@ function SpellStatus: dotRemain(spell, unit)
 	return dots: get("expiration", spell)
 end
 
-function SpellStatus: isBlacklisted(spell)
-	local bl = false
-	if self.spells.blacklist then 
-		for _, v in pairs(self.spells.blacklist) do 
-			bl = bl or (v==spell)
-		end
-	end
-	return bl
+function SpellStatus: lastCast()
+	return self.last_cast_spell
 end
 
-function SpellStatus: previousCast()
-	local previous = {}
-	if true then --time() - self.previous.time <= 2 then 
-		previous.spell = self.previous.spell
-		previous.target = self.previous.target
-		previous.time = self.previous.time
-	end
-	return previous
+function SpellStatus: lastCastTarget()
+	return self.last_cast_target
+end
+
+function SpellStatus: lastCastTime()
+	return time() - self.last_cast_time
 end
 
 function SpellStatus: enablePrediction(predict)

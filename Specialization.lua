@@ -10,8 +10,9 @@ setmetatable(Specialization, {
 })
 
 function Specialization: _new(spells, single_target_dps)
+
 	self.player = Player()
-	self.cleave = CleaveLog2(spells.cleave)
+	self.cleave = CleaveLog(spells.cleave)
 	self.spells = SpellStatus(spells)
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -21,7 +22,6 @@ function Specialization: _new(spells, single_target_dps)
 	self.next_spell_on_focus = false
 	
 	self.variables = {}
-	self.variables.azerite = {}
 	self.icons = {}
 	self.actions = {}
 	self.talent = self.player:talent()
@@ -31,7 +31,7 @@ function Specialization: _new(spells, single_target_dps)
 	self.size = 50
 	self.ui_ratio = 1
 	
-	self.icon = self:createIcon(nil, self.size, self.anchor_x, self.anchor_y)
+	self.icon = self:createIcon(nil, self.size, self.anchor_x, self.anchor_y, true)
 
 	self:refreshUI()
 end
@@ -76,7 +76,7 @@ end
 
 function Specialization: createIcon(texture, size, x, y, cd)
 	if type(texture) == "number" then texture = GetSpellTexture(texture) end
-	
+
 	local icon = {}
 	icon.texture = texture
 	icon.size = size or 50
@@ -92,7 +92,7 @@ function Specialization: createIcon(texture, size, x, y, cd)
 	if texture then icon.UITexture:SetTexture(icon.texture) end
 	icon.UITexture:SetAllPoints(icon.UIFrame)
 	
-	if cd ~= false then 
+	if cd then 
 		icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
 		icon.UICd:SetAllPoints(icon.UIFrame)
 		icon.UICd:SetDrawEdge(false)
@@ -133,11 +133,9 @@ function Specialization: iconColor(icon, r, g, b, alpha)
 	alpha = alpha or 1
 	self.icons[icon].UITexture:SetVertexColor(r, g, b, alpha)
 end
-
 function Specialization: iconTexture(icon, texture)
 	self.icons[icon].UITexture:SetTexture(texture)
 end
-
 function Specialization: refreshUI()
 	-- self.icon: SetSize(self.size,self.size)
 	-- self.icon: SetPoint("CENTER", self.anchor_x, self.anchor_y)
@@ -155,23 +153,16 @@ end
 function Specialization: update()
 	if not self.enabled then return nil end
 	self.spells: update()
-	self.cleave: update()
 end
 
-function Specialization: updateCombat()		-- call on combat log event
+function Specialization: updateCombat()
 	if not self.enabled then return nil end
 	self.spells: updateCombat()	
-	self.cleave: updateCombat()
 end
 
-function Specialization: updateTalent()		-- call on talent change events
-	if not self.enabled then return nil end
-	self.talent = self.player:talent()
-end
-
-function Specialization: updateIcon(iconId, spell, cdSpell)
+function Specialization: updateIcon(icon, spell)
 	size = not(button) and self.size
-	icon = self.icons[iconId] or self.icons[self.icon]
+	icon = icon or self.icon
 	spell = spell or self.next_spell
 	
 	local color = 0
@@ -185,8 +176,7 @@ function Specialization: updateIcon(iconId, spell, cdSpell)
 			end
 		end
 	else
-		--icon.UIFrame: Hide()
-		icon.UITexture: SetTexture(nil)
+		icon.UIFrame: Hide()
 	end
 	if self.next_spell_on_focus then 
 		--self.text:SetText("")
@@ -196,16 +186,9 @@ function Specialization: updateIcon(iconId, spell, cdSpell)
 	if color == 0 then 
 		icon.UITexture:SetVertexColor(1, 1, 1, 1)
 	elseif color == 1 then 
-		icon.UITexture:SetVertexColor(1, .5, .5, 1)
+		icon.UITexture:SetVertexColor(1, .7, .7, 1)
 	elseif color == 2 then 
-		icon.UITexture:SetVertexColor(1, 1, 0, 1)
-	end
-	
-	if cdSpell and icon.UICd then 
-		local start, duration = GetSpellCooldown(cdSpell)
-		if duration > 1.5 then 
-			self:iconCooldown(iconId or self.icon, start, duration)
-		end
+		icon.UITexture:SetVertexColor(1, 1, .7, 1)
 	end
 	
 	-- if DEBUG > 0 then 
@@ -230,47 +213,29 @@ function Specialization: newActionList(actions)
 end
 
 function Specialization: runActionList(list)
-	-- if not self.printonce then 
-		-- printTable(list) 
-		-- self.printonce = true
-	-- end
-	
-	local spell, priority
-	
-	for i, v in pairs(list) do 
-		if v.triggered and v.enabled then 
-			--print(tostring(v.spell).." "..tostring(v.priority))
-			priority = priority or v.priority
-			if (v.priority <= priority) then
-				priority = v.priority
-				spell = v.spell
-			end
+	for i, v in ipairs(list) do 
+		if v.triggered then 
+			return v.spell
 		end
 	end
-	return spell, priority
+	return nil
 end
 
-function Specialization: newAction(spell, list, conditions, enabled)
+function Specialization: newAction(spell, conditions, enabled)
 	local action = {}
-	action.spell = spell
-	action.priority = 1
-	
-	-- '#list' doesn't work here, use for loop to count # of elements
-	for i, v in pairs(list) do
-		action.priority = action.priority + 1
-	end
-	
 	self: updateAction(action, conditions, enabled)
 	return action
 end
 
 function Specialization: updateAction(action, conditions, enabled)
-	enabled = not (enabled == false)
+	enabled = enabled or true
+	
+	action.spell = spell
 	action.enabled = enabled
 	
-	if action.spell then 
-		action.usable = self.spells:isSpellReady(action.spell)
-		if action.spellspell == "POOL" then 
+	if spell then 
+		action.usable = self.spells:isSpellReady(spell)
+		if spell == "POOL" then 
 			action.usable = true
 		end
 	else
@@ -291,7 +256,7 @@ function Specialization: updateAction(action, conditions, enabled)
 		end
 	end
 	action.condition = all_conditions_met
-	action.triggered = action.usable and action.condition and action.enabled
+	action.triggered = action.usable and actions.condition and action.enabled
 	
 	return action
 end

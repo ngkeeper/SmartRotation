@@ -31,11 +31,11 @@ function Player: talent(tier)
 end
 
 function Player: power(powerType)
-	return UnitPower("player", powerType)
+	return UnitPower("player", powertype)
 end
 
 function Player: powerMax(powerType)
-	return UnitPowerMax("player", powerType)
+	return UnitPowerMax("player", powertype)
 end
 
 function Player: getAzeriteInfo()
@@ -74,7 +74,7 @@ function Player: getAzeriteRank(powerId)
 	if not self.azerite then 
 		self.azerite = self:getAzeriteInfo()
 	end
-	return self.azerite: get("rank", powerId) or 0
+	return self.azerite: get("rank", powerId)
 end
 
 function Player: timeToKill(unit)
