@@ -44,6 +44,8 @@ function SpellStatus: _new(spells)
 	self.cds: addRow({"up", "remain", "charge"})
 	self.cds: addColumn(self.spells.cd)
 	
+	self.traced_spells = {}
+	
 	self.previous = {}
 	self.previous.spell = nil
 	self.previous.target = nil
@@ -81,7 +83,7 @@ function SpellStatus: updateCombat()
 	if not message then 
 		return nil 
 	end
-	
+	--print("=====")
 	local player_name = UnitName("player")
 	if source_name == player_name then
 		--print(tostring(self:isBlacklisted(spell_id)).." "..tostring(spell_name).." "..tostring(spell_id).." "..tostring(message))
@@ -99,8 +101,28 @@ function SpellStatus: updateCombat()
 				self.previous.target = nil
 			end
         end
+		if message == "SPELL_CAST_SUCCESS" then 
+			
+			for i, v in ipairs(self.spells.trace) do
+				if v == spell_id then 
+					local spell = {}
+					spell.spell_id = spell_id
+					spell.timestamp = timestamp
+					spell.destination = dest_guid
+					table.insert(self.traced_spells, 1, spell)
+					
+					for i, _ in ipairs(self.traced_spells) do 
+						if i > 20 then table.remove(self.traced_spells, i) end
+					end			
+					-- table.sort(self.traced_spells, function(a,b) 
+						-- return ( a.timestamp > b.timestamp ) or ( a.timestamp == b.timestamp ) and ( a.spell_id < b.spell_id )
+					-- end)
+					--print("=====")
+					--printTable(self.traced_spells)
+				end
+			end
+		end
 	end
-	
 end
 
 function SpellStatus: updateGCD()
@@ -263,6 +285,10 @@ function SpellStatus: updateCd()
 	--self.cds: printMatrix()
 end
 
+function SpellStatus: updateTrace()
+	
+end
+
 function SpellStatus: isCasting(spell, uci)
 	-- the default option has ~300ms delay
 	-- this feature is to prevent the "gap"
@@ -409,6 +435,20 @@ function SpellStatus: previousCast()
 		previous.time = self.previous.time
 	end
 	return previous
+end
+
+function SpellStatus: recentlyCast(spell)
+	local cast = false
+	local timestamp = 0
+	for i, v in ipairs(self.traced_spells) do
+		if v.spell_id == spell then 
+			if time() - v.timestamp < 2 then 
+				cast = true
+				timestamp = math.max(timestamp, v.timestamp)
+			end
+		end
+	end
+	return cast, timestamp
 end
 
 function SpellStatus: enablePrediction(predict)

@@ -88,17 +88,23 @@ function DruidFeral:_new()
 						106830, 	--"Thrash"
 						205381, 	--"Primal Wrath"
 					  }
-	spells.melee 	= 5221			--"Shred"	used to scan nearby enemies
-					  
+	spells.trace 	= { 5221, 		-- "Shred"
+						22568, 		-- "Furious Bite"
+						106785, 	-- "Swipe"
+						285381,		-- "Primal Wrath"
+					  }
 	spells.blacklist =	{16953, 		--"Primal Fury"
 						}
 	
 	Specialization:_new(spells)
 	
 	self:createActions()
-	self.cleave:setTimeout(4)
+	self.cleave:setTimeout(6)
+	self.cleave:setLowHealthThreshold(self.player:dps() * 3)
 	
 	self.icon_cooldown = Specialization:createIcon(106951, 40, -50, 0)
+	self.icon_tigers_fury_small = Specialization:createIcon(5217, 25, -12, 12, nil, "HIGH")
+
 	--self.icon_prowl = Specialization:createIcon(5215, 40, 50, 0)
 end
 
@@ -162,10 +168,10 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.main.regrowth, {(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
 										  not var.buff.bloodtalons.up, not var.buff.incarnation.up or var.dot.rip.remain < 8})
 
-	-- cooldown action list									  
+	-- cooldown action list		
 	self:updateAction(act.cooldowns.berserk, {var.energy > 30, var.cooldown.tigers_fury.remain > 5 or var.buff.tigers_fury.up})
 	self:updateAction(act.cooldowns.tigers_fury, var.energy_max - var.energy > 60 )
-	self:updateAction(act.cooldowns.tigers_fury, {var.energy_max - var.energy > 40, var.targets > 2})
+	--self:updateAction(act.cooldowns.tigers_fury2, {var.energy_max - var.energy > 50, var.targets > 2})
 	self:updateAction(act.cooldowns.feral_frenzy, var.cp == 0)
 	self:updateAction(act.cooldowns.incarnation, {var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up})
 	
@@ -173,7 +179,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.finishers.savage_roar, not var.buff.savage_roar.up)
 	self:updateAction(act.finishers.primal_wrath, {var.targets > 1, var.dot.rip.remain < 4})
 	self:updateAction(act.finishers.primal_wrath2, var.targets >= 2)	-- From Simc, doesn't make sence (same as previuous one)
-	self:updateAction(act.finishers.rip, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 12})
+	self:updateAction(act.finishers.rip, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
 	self:updateAction(act.finishers.savage_roar2, var.buff.savage_roar.remain < 12)
 	self:updateAction(act.finishers.maim, var.buff.iron_jaws.up)
 	self:updateAction(act.finishers.ferocious_bite)
@@ -213,14 +219,16 @@ function DruidFeral:updateVariables()
 	var.cp = self.player:power(Enum.PowerType.ComboPoints)
 	var.ttk = self.player:timeToKill()
 	var.targets = self.cleave:targets()
-	--print(var.targets)
+	var.targets_low_health = self.cleave:targetsLowHealth()
+	
 	var.azerite = {}
-	var.azerite.wild_fleshrending = true --self.player: getAzeriteRank(359) > 0
+	var.azerite.wild_fleshrending = self.player: getAzeriteRank(359) > 0
 	
 	var.haste = UnitSpellHaste("player")
 	var.energy = math.min(var.energy_max, var.energy + 10 * ( 1 + var.haste/100) * var.dt)
 	
 	var.talent = var.talent or {}
+	var.talent.predator = self.talent[1] == 1
 	var.talent.sabertooth = self.talent[1] == 2
 	var.talent.lunar_inspiration = self.talent[1] == 3
 	var.talent.incarnation = self.talent[5] == 3
@@ -251,19 +259,30 @@ function DruidFeral:updateVariables()
 	var.dot.thrash = self.spells:dot(106830, 15)
 	var.dot.moonfire = self.spells:dot(164812, 16)
 	
+	--print(self.spells:recentlyCast(5221))
 	-- Turn cleave on/off based on the spells used
-	if (var.previous.spell == 5221 or var.previous.spell == 22568)  -- if shred or ferocious_bite, diable cleave 
-		and var.previous.time ~= var.cleaveSettingsChanged then 
-		self.cleave:temporaryDisable(8)	-- temporarily diable cleave for 8 seconds
-										-- longest non-shred/bite sequence is (shred)->rip->regrowth->rake->thrash->(shred)
-										-- 7*gcd ~ 7.5 seconds, plus some time for energy regeneration
-		var.cleaveSettingsChanged = var.previous.time
-	end
-	if (var.previous.spell == 106785 or var.previous.spell == 285381)  -- if swipe or primal wrath, enable cleave
-		and var.previous.time ~= var.cleaveSettingsChanged then 
-		self.cleave:temporaryDisable(0)		-- turn cleave back on
-		var.cleaveSettingsChanged = var.previous.time
-	end
+	
+	local shredCast, shredTime = self.spells:recentlyCast(5221)
+	if shredCast then 
+		self.cleave:temporaryDisable(8, shredTime)
+	end 
+	local swipeCast, swipeTime = self.spells:recentlyCast(106785)
+	if swipeCast then 
+		self.cleave:temporaryDisable(0, swipeTime)
+	end 
+	-- print(var.previous.spell)
+	-- if (var.previous.spell == 5221 or var.previous.spell == 22568)  -- if shred or ferocious_bite, diable cleave 
+		-- and var.previous.time ~= var.cleaveSettingsChanged then 
+		-- self.cleave:temporaryDisable(8)	-- temporarily diable cleave for 8 seconds
+										-- -- longest non-shred/bite sequence is (shred)->rip->regrowth->rake->thrash->(shred)
+										-- -- 7*gcd ~ 7.5 seconds, plus some time for energy regeneration
+		-- var.cleaveSettingsChanged = var.previous.time
+	-- end
+	-- if (var.previous.spell == 106785 or var.previous.spell == 285381)  -- if swipe or primal wrath, enable cleave
+		-- and var.previous.time ~= var.cleaveSettingsChanged then 
+		-- self.cleave:temporaryDisable(0)		-- turn cleave back on
+		-- var.cleaveSettingsChanged = var.previous.time
+	-- end
 end
 
 -- nextSpell() will be called on every frame (with timing), by system event
@@ -281,4 +300,16 @@ function DruidFeral:nextSpell()
 	self:updateIcon(_, spell)	-- '_' for main icon
 	self:updateIcon(self.icon_cooldown, cooldowns)
 	--self:updateIcon(self.icon_prowl, 5215, 5215)
+	
+	--print(self.variables.cooldown.tigers_fury.up and spell == generators )
+	if self.variables.talent.predator and 
+		((self.variables.targets_low_health > 0) or (self.variables.ttk < 6 and self.variables.ttk > 0 ))
+		and self.variables.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) then 
+		self:updateIcon(self.icon_tigers_fury_small, 5217)
+	else 
+		self:updateIcon(self.icon_tigers_fury_small, nil)
+	end
+	
+	-- local str = tostring(self.cleave:targets()) .." "..tostring( self.cleave:targetsLowHealth())
+	-- self.text:SetText(str)
 end

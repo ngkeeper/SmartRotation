@@ -17,6 +17,10 @@ function Player: _new()
 
 end
 
+function Player: dps()
+	return self.one_man_dps
+end
+
 function Player: talent(tier)
 	if tier then 
 		return select(2, GetTalentTierInfo(tier, 1))

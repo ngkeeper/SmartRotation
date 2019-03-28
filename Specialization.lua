@@ -9,9 +9,9 @@ setmetatable(Specialization, {
   end,
 })
 
-function Specialization: _new(spells, single_target_dps)
+function Specialization: _new(spells)
 	self.player = Player()
-	self.cleave = CleaveLog2(spells.cleave, spells.melee)
+	self.cleave = CleaveLog2(spells.cleave)
 	self.spells = SpellStatus(spells)
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -32,6 +32,13 @@ function Specialization: _new(spells, single_target_dps)
 	self.ui_ratio = 1
 	
 	self.icon = self:createIcon(nil, self.size, self.anchor_x, self.anchor_y)
+	self.text = self.icons[self.icon].UIFrame:CreateFontString(nil,"OVERLAY")
+	self.text:SetFont("Fonts\\FRIZQT__.ttf", 24, "THICKOUTLINE")
+	self.text:SetTextColor(1, 1, 1)
+	--self.text:SetAllPoints(self.icons[self.icon].UIFrame)
+	self.text:SetJustifyH("CENTER")
+	self.text:SetJustifyV("MIDDLE")
+	self.text:SetText("")
 
 	self:refreshUI()
 end
@@ -74,7 +81,7 @@ function Specialization: getPosition()
 	return self.anchor_x, self.anchor_y
 end
 
-function Specialization: createIcon(texture, size, x, y, cd)
+function Specialization: createIcon(texture, size, x, y, cd, strata)
 	if type(texture) == "number" then texture = GetSpellTexture(texture) end
 	
 	local icon = {}
@@ -84,7 +91,7 @@ function Specialization: createIcon(texture, size, x, y, cd)
 	icon.y = y or 0
 	
 	icon.UIFrame = CreateFrame("Frame", nil, UIParent)
-	icon.UIFrame:SetFrameStrata("BACKGROUND")
+	icon.UIFrame:SetFrameStrata(strata or "BACKGROUND")
 	icon.UIFrame:SetWidth(icon.size)
 	icon.UIFrame:SetHeight(icon.size)
 	
@@ -149,6 +156,10 @@ function Specialization: refreshUI()
 		v.UIFrame: SetHeight(v.size * self.ui_ratio)
 		v.UIFrame: SetPoint("CENTER", self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
 		v.UIFrame: Show()
+	end
+	if self.text then 
+		self.text:SetPoint("CENTER", self.anchor_x + self.icons[self.icon].x * self.ui_ratio, 
+						   self.anchor_y + (self.icons[self.icon].y + 220) * self.ui_ratio)
 	end
 end
 

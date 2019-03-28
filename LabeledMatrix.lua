@@ -145,3 +145,4 @@ function LabeledMatrix: get(row_label, column_label)
 		return self.data[row][col]
 	end
 end
+
