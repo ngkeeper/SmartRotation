@@ -211,8 +211,10 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.generators.thrash_cat2, {var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
 												   not var.buff.scent_of_blood.up, var.targets > 3})
 	self:updateAction(act.generators.swipe_cat, {not var.talent.brutal_slash, var.buff.scent_of_blood.up})
-	self:updateAction(act.generators.rake, {var.targets <= 3, not var.dot.rake.up or (not var.talent.bloodtalons and var.dot.rake.refreshable), var.ttk > 6})
-	self:updateAction(act.generators.rake2, {var.targets <= 3, var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
+	self:updateAction(act.generators.rake, {var.targets <= 3, var.ttk > 6, not var.dot.rake.up or
+											(not var.talent.bloodtalons and var.dot.rake.refreshable and var.multiplier.rake < 2)})
+	self:updateAction(act.generators.rake2, {var.targets <= 3, var.multiplier.rake <= 1.25,
+											 var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
 	self:updateAction(act.generators.moonfire_cat, {var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
 													not var.buff.predatory_swiftness.up, var.cp < 5})
 	self:updateAction(act.generators.brutal_slash2, {var.buff.tigers_fury.up, var.targets <= 1})
@@ -304,6 +306,10 @@ function DruidFeral:updateVariables()
 	if bloodtalons_thrash then 
 		var.multiplier.thrash = 1 + bloodtalons_thrash * 0.25
 	end
+	
+	var.multiplier.rip = var.dot.rip.up and var.multiplier.rip or 0
+	var.multiplier.rake = var.dot.rake.up and var.multiplier.rake or 0
+	var.multiplier.thrash = var.dot.thrash.up and var.multiplier.thrash or 0
 	--print(prowl_rake)
 	--printTable(var.multiplier)
 	
@@ -314,7 +320,7 @@ function DruidFeral:nextSpell()
 
 	-- Turn cleave on/off based on the spells used
 	local shredCast, shredTime = self.spells:recentlyCast(5221)
-	if shredCast and self.variables.talent.brutal_slash then 
+	if shredCast and not self.variables.talent.brutal_slash then 
 		self.cleave:temporaryDisable(8, shredTime)
 	end 
 	local swipeCast, swipeTime = self.spells:recentlyCast(106785)
