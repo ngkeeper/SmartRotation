@@ -79,6 +79,7 @@ function DruidFeral:_new()
     spells.cd  		= {	5215,		--"Prowl"
 						5217,		--"Tiger's Fury"
 						106951,		--"Berserk"
+						202028,		--"Brutal Slash"
 						274837,		--"Feral Frenzy"
 						102543,		--"Incarnation: King of the Jungle"
 					  }
@@ -92,10 +93,14 @@ function DruidFeral:_new()
 						22568, 		-- "Furious Bite"
 						106785, 	-- "Swipe"
 						285381,		-- "Primal Wrath"
+						1079, 		-- "Rip"
+						1822, 		-- "Rake"
+						106830,		-- "Thrash"
 					  }
-	spells.blacklist =	{16953, 		--"Primal Fury"
-						}
-	
+	spells.auras 	= { 145152, 	-- "Bloodtalons"
+						5215, 		-- "Prowl"
+					  }
+
 	Specialization:_new(spells)
 	
 	self:createActions()
@@ -105,7 +110,6 @@ function DruidFeral:_new()
 	self.icon_cooldown = Specialization:createIcon(106951, 40, -50, 0)
 	self.icon_tigers_fury_small = Specialization:createIcon(5217, 25, -12, 12, nil, "HIGH")
 
-	--self.icon_prowl = Specialization:createIcon(5215, 40, 50, 0)
 end
 
 function DruidFeral:createActions()
@@ -131,6 +135,8 @@ function DruidFeral:createActions()
 	act.finishers.primal_wrath = self:newAction(285381, act.finishers)
 	act.finishers.primal_wrath2 = self:newAction(285381, act.finishers)
 	act.finishers.rip = self:newAction(1079, act.finishers)
+	act.finishers.rip2 = self:newAction(1079, act.finishers)
+	act.finishers.rip3 = self:newAction(1079, act.finishers)
 	act.finishers.savage_roar2 = self:newAction(52610, act.finishers)
 	act.finishers.maim = self:newAction(22570, act.finishers)
 	act.finishers.ferocious_bite = self:newAction(22568, act.finishers)
@@ -164,7 +170,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.main.prowl, not var.buff.prowl.up)
 	self:updateAction(act.main.cat_form, not var.buff.cat_form.up)
 	self:updateAction(act.main.rake, var.buff.prowl.up or var.buff.shadowmeld.up)
-	self:updateAction(act.main.ferocious_bite, {var.dot.rip.up, var.dot.rip.remains or 0 < 3, var.ttk > 10, var.talent.sabertooth})
+	self:updateAction(act.main.ferocious_bite, {not var.disable_finisher, var.cp >= 1, var.dot.rip.up, (var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth})
 	self:updateAction(act.main.regrowth, {(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
 										  not var.buff.bloodtalons.up, not var.buff.incarnation.up or var.dot.rip.remain < 8})
 
@@ -178,11 +184,22 @@ function DruidFeral:updateAllActions()
 	-- finishers action list
 	self:updateAction(act.finishers.savage_roar, not var.buff.savage_roar.up)
 	self:updateAction(act.finishers.primal_wrath, {var.targets > 1, var.dot.rip.remain < 4})
-	self:updateAction(act.finishers.primal_wrath2, var.targets >= 2)	-- From Simc, doesn't make sence (same as previuous one)
-	self:updateAction(act.finishers.rip, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
+	self:updateAction(act.finishers.primal_wrath2, {var.targets > 1, var.talent.bloodtalons})
+	self:updateAction(act.finishers.rip, {not var.dot.rip.up, var.ttk > 8})
+	self:updateAction(act.finishers.rip2, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
+	self:updateAction(act.finishers.rip3, {var.dot.rip.remain < 20, var.multiplier.rip == 1, var.buff.bloodtalons.up, var.ttk > 8})
 	self:updateAction(act.finishers.savage_roar2, var.buff.savage_roar.remain < 12)
 	self:updateAction(act.finishers.maim, var.buff.iron_jaws.up)
 	self:updateAction(act.finishers.ferocious_bite)
+	
+	-- keep swiping for aoe, even at 5 cp
+	if var.targets > 1 and var.cp == 5 and 
+		var.talent.moment_of_clarity and var.azerite.wild_fleshrending and 
+		not act.finishers.primal_wrath.triggered and not act.finishers.primal_wrath2.triggered then 
+		var.disable_finisher = true	
+	else
+		var.disable_finisher = false
+	end
 	
 	-- generators action list
 	self:updateAction(act.generators.regrowth, {var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
@@ -190,22 +207,24 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.generators.regrowth2, {var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
 												not var.buff.bloodtalons.up, var.talent.lunar_inspiration, var.dot.rake.remain < 1})
 	self:updateAction(act.generators.brutal_slash, var.targets > 2)
-	self:updateAction(act.generators.thrash_cat, {var.dot.thrash.refreshable, var.targets > 2})
-	self:updateAction(act.generators.thrash_cat2, {var.talent.scent_of_blood, not var.buff.scent_of_blood.up, var.targets > 3})
-	self:updateAction(act.generators.swipe_cat, var.buff.scent_of_blood.up)
-	self:updateAction(act.generators.rake, {var.targets <= 4, not var.dot.rake.up or (not var.talent.bloodtalons and var.dot.rake.refreshable), var.ttk > 6})
-	self:updateAction(act.generators.rake2, {var.targets <= 4, var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
+	self:updateAction(act.generators.thrash_cat, {var.dot.thrash.refreshable, not var.buff.bloodtalons.up, var.targets > 2})
+	self:updateAction(act.generators.thrash_cat2, {var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
+												   not var.buff.scent_of_blood.up, var.targets > 3})
+	self:updateAction(act.generators.swipe_cat, {not var.talent.brutal_slash, var.buff.scent_of_blood.up})
+	self:updateAction(act.generators.rake, {var.targets <= 3, not var.dot.rake.up or (not var.talent.bloodtalons and var.dot.rake.refreshable), var.ttk > 6})
+	self:updateAction(act.generators.rake2, {var.targets <= 3, var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
 	self:updateAction(act.generators.moonfire_cat, {var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
 													not var.buff.predatory_swiftness.up, var.cp < 5})
 	self:updateAction(act.generators.brutal_slash2, {var.buff.tigers_fury.up, var.targets <= 1})
 	self:updateAction(act.generators.moonfire_cat2, {var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
-	self:updateAction(act.generators.thrash_cat3, {var.dot.thrash.refreshable, ((var.azerite.wild_fleshrending and 
+	self:updateAction(act.generators.thrash_cat3, {var.dot.thrash.refreshable, not var.buff.bloodtalons.up, 
+												  ((var.azerite.wild_fleshrending and 
 												  (not var.buff.incarnation.up or var.azerite.wild_fleshrending)) or 
 												  var.targets > 1)})
 	self:updateAction(act.generators.thrash_cat4, {var.dot.thrash.refreshable, not var.azerite.wild_fleshrending, 
-												   var.buff.clearcasting.up, 
+												   var.buff.clearcasting.up, not var.buff.bloodtalons.up, 
 												  (not var.buff.incarnation.up or var.azerite.wild_fleshrending)})
-	self:updateAction(act.generators.swipe_cat2, var.targets > 1 )
+	self:updateAction(act.generators.swipe_cat2, {not var.talent.brutal_slash, var.targets > 1} )
 	self:updateAction(act.generators.shred, (var.dot.rake.remain > (75 - var.energy - 10)) or var.buff.clearcasting.up)
 end
 
@@ -213,7 +232,6 @@ function DruidFeral:updateVariables()
 	local var = self.variables
 	
 	var.dt = self.spells:timeNextSpell()
-	var.previous = self.spells:previousCast()
 	var.energy = self.player:power(Enum.PowerType.Energy)
 	var.energy_max = self.player:powerMax(Enum.PowerType.Energy)
 	var.cp = self.player:power(Enum.PowerType.ComboPoints)
@@ -233,6 +251,8 @@ function DruidFeral:updateVariables()
 	var.talent.lunar_inspiration = self.talent[1] == 3
 	var.talent.incarnation = self.talent[5] == 3
 	var.talent.scent_of_blood = self.talent[6] == 1
+	var.talent.brutal_slash = self.talent[6] == 2
+	var.talent.moment_of_clarity = self.talent[7] == 1
 	var.talent.bloodtalons = self.talent[7] == 2
 	
 	var.cooldown = var.cooldown or {}
@@ -259,34 +279,49 @@ function DruidFeral:updateVariables()
 	var.dot.thrash = self.spells:dot(106830, 15)
 	var.dot.moonfire = self.spells:dot(164812, 16)
 	
-	--print(self.spells:recentlyCast(5221))
-	-- Turn cleave on/off based on the spells used
+	local prowl_rake = self:doesSpellRemoveAura(1822, 5215)
+	local bloodtalons_rip = self:doesSpellRemoveAura(1079, 145152)
+	local bloodtalons_rake = self:doesSpellRemoveAura(1822, 145152)
+	local bloodtalons_thrash = self:doesSpellRemoveAura(106830, 145152)
 	
+	var.multiplier = var.multiplier or {}
+	var.multiplier.rip = var.multiplier.rip or 1
+	var.multiplier.rake = var.multiplier.rake or 1
+	var.multiplier.thrash = var.multiplier.thrash or 1
+	
+	if bloodtalons_rip then 
+		var.multiplier.rip = 1 + bloodtalons_rip * 0.25
+	end
+	
+	if prowl_rake and bloodtalons_rake then 
+		var.multiplier.rake = ( 1 + prowl_rake ) * ( 1 + bloodtalons_rake * 0.25 )
+	elseif prowl_rake then 
+		var.multiplier.rake = 1 + prowl_rake
+	elseif bloodtalons_rake then 
+		var.multiplier.rake = 1 + bloodtalons_rake * 0.25
+	end
+	
+	if bloodtalons_thrash then 
+		var.multiplier.thrash = 1 + bloodtalons_thrash * 0.25
+	end
+	--print(prowl_rake)
+	--printTable(var.multiplier)
+	
+end
+
+-- nextSpell() will be called on every frame (with timing), by system event
+function DruidFeral:nextSpell()	
+
+	-- Turn cleave on/off based on the spells used
 	local shredCast, shredTime = self.spells:recentlyCast(5221)
-	if shredCast then 
+	if shredCast and self.variables.talent.brutal_slash then 
 		self.cleave:temporaryDisable(8, shredTime)
 	end 
 	local swipeCast, swipeTime = self.spells:recentlyCast(106785)
 	if swipeCast then 
 		self.cleave:temporaryDisable(0, swipeTime)
 	end 
-	-- print(var.previous.spell)
-	-- if (var.previous.spell == 5221 or var.previous.spell == 22568)  -- if shred or ferocious_bite, diable cleave 
-		-- and var.previous.time ~= var.cleaveSettingsChanged then 
-		-- self.cleave:temporaryDisable(8)	-- temporarily diable cleave for 8 seconds
-										-- -- longest non-shred/bite sequence is (shred)->rip->regrowth->rake->thrash->(shred)
-										-- -- 7*gcd ~ 7.5 seconds, plus some time for energy regeneration
-		-- var.cleaveSettingsChanged = var.previous.time
-	-- end
-	-- if (var.previous.spell == 106785 or var.previous.spell == 285381)  -- if swipe or primal wrath, enable cleave
-		-- and var.previous.time ~= var.cleaveSettingsChanged then 
-		-- self.cleave:temporaryDisable(0)		-- turn cleave back on
-		-- var.cleaveSettingsChanged = var.previous.time
-	-- end
-end
-
--- nextSpell() will be called on every frame (with timing), by system event
-function DruidFeral:nextSpell()	
+	
 	self:updateVariables()
 	self:updateAllActions()
 	
@@ -294,15 +329,16 @@ function DruidFeral:nextSpell()
 	local finishers = self:runActionList(self.actions.finishers)
 	local generators = self:runActionList(self.actions.generators)
 	local cooldowns = self:runActionList(self.actions.cooldowns)
-	local spell = main or (self.variables.cp == 5) and finishers or generators
+	local spell = main or 
+				  ((self.variables.cp == 5) and not self.variables.disable_finisher) and finishers 
+				  or generators
 	
 	--printTable(self.actions.cooldowns)
 	self:updateIcon(_, spell)	-- '_' for main icon
 	self:updateIcon(self.icon_cooldown, cooldowns)
-	--self:updateIcon(self.icon_prowl, 5215, 5215)
 	
 	--print(self.variables.cooldown.tigers_fury.up and spell == generators )
-	if self.variables.talent.predator and 
+	if self.variables.talent.predator and spell and
 		((self.variables.targets_low_health > 0) or (self.variables.ttk < 6 and self.variables.ttk > 0 ))
 		and self.variables.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) then 
 		self:updateIcon(self.icon_tigers_fury_small, 5217)

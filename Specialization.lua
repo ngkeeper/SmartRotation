@@ -21,7 +21,6 @@ function Specialization: _new(spells)
 	self.next_spell_on_focus = false
 	
 	self.variables = {}
-	self.variables.azerite = {}
 	self.icons = {}
 	self.actions = {}
 	self.talent = self.player:talent()
@@ -230,6 +229,22 @@ function Specialization: getRange(unit)
 	unit = unit or "target"
 	local range_min, range_max = self.rc:GetRange(unit)
 	return range_min, range_max
+end
+
+function Specialization: doesSpellRemoveAura(spell, aura)
+	local aura_timestamps = self.spells: auraRemoved(aura)
+	local spell_cast, spell_timestamp = self.spells: recentlyCast(spell)
+	
+	if not spell_cast then 
+		return nil
+	end
+	--print(spell_cast, spell_timestamp, aura_timestamps[1])
+	
+	local time_diff = spell_timestamp
+	for i, v in ipairs(aura_timestamps) do 
+		time_diff = math.min(time_diff, math.abs(v - spell_timestamp))
+	end
+	return ( time_diff <= 1 ) and 1 or 0
 end
 
 function Specialization: newActionList(actions)

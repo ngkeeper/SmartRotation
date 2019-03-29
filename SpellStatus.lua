@@ -45,11 +45,8 @@ function SpellStatus: _new(spells)
 	self.cds: addColumn(self.spells.cd)
 	
 	self.traced_spells = {}
+	self.auras_removed = {}
 	
-	self.previous = {}
-	self.previous.spell = nil
-	self.previous.target = nil
-	self.previous.time = nil
 	
 	self.casting = {}
 	self.casting.spell = nil
@@ -86,23 +83,8 @@ function SpellStatus: updateCombat()
 	--print("=====")
 	local player_name = UnitName("player")
 	if source_name == player_name then
-		--print(tostring(self:isBlacklisted(spell_id)).." "..tostring(spell_name).." "..tostring(spell_id).." "..tostring(message))
-		if message == "SPELL_CAST_SUCCESS" and not self:isBlacklisted(spell_id) then --or "SPELL_AURA_APPLIED" then 
-			--print(tostring(spell_name).." "..tostring(spell_id))
-			self.previous.spell = spell_id
-            self.previous.time = timestamp
-			local target_guid = UnitGUID("target")
-			local focus_guid = UnitGUID("focus")
-			if dest_guid == target_guid then 
-				self.previous.target = "target"
-			elseif dest_guid == focus_guid then 
-				self.previous.target = "focus"
-			else
-				self.previous.target = nil
-			end
-        end
+		--print(message, spell_name, spell_id)
 		if message == "SPELL_CAST_SUCCESS" then 
-			
 			for i, v in ipairs(self.spells.trace) do
 				if v == spell_id then 
 					local spell = {}
@@ -112,13 +94,27 @@ function SpellStatus: updateCombat()
 					table.insert(self.traced_spells, 1, spell)
 					
 					for i, _ in ipairs(self.traced_spells) do 
-						if i > 20 then table.remove(self.traced_spells, i) end
+						if i > 40 then table.remove(self.traced_spells, i) end
 					end			
-					-- table.sort(self.traced_spells, function(a,b) 
-						-- return ( a.timestamp > b.timestamp ) or ( a.timestamp == b.timestamp ) and ( a.spell_id < b.spell_id )
-					-- end)
-					--print("=====")
+					--print("*****")
 					--printTable(self.traced_spells)
+				end
+			end
+		end
+		
+		if message == "SPELL_AURA_REMOVED" or message == "SPELL_AURA_REMOVED_DOSE" then 
+			for i, v in ipairs(self.spells.auras) do
+				if v == spell_id then 
+					local aura = {}
+					aura.spell_id = spell_id
+					aura.timestamp = timestamp
+					table.insert(self.auras_removed, 1, aura)
+					
+					for i, _ in ipairs(self.auras_removed) do 
+						if i > 40 then table.remove(self.auras_removed, i) end
+					end			
+					--print("=====")
+					--printTable(self.auras_removed)
 				end
 			end
 		end
@@ -417,26 +413,6 @@ function SpellStatus: dotRemain(spell, unit)
 	return dots: get("expiration", spell)
 end
 
-function SpellStatus: isBlacklisted(spell)
-	local bl = false
-	if self.spells.blacklist then 
-		for _, v in pairs(self.spells.blacklist) do 
-			bl = bl or (v==spell)
-		end
-	end
-	return bl
-end
-
-function SpellStatus: previousCast()
-	local previous = {}
-	if true then --time() - self.previous.time <= 2 then 
-		previous.spell = self.previous.spell
-		previous.target = self.previous.target
-		previous.time = self.previous.time
-	end
-	return previous
-end
-
 function SpellStatus: recentlyCast(spell)
 	local cast = false
 	local timestamp = 0
@@ -449,6 +425,17 @@ function SpellStatus: recentlyCast(spell)
 		end
 	end
 	return cast, timestamp
+end
+
+function SpellStatus: auraRemoved(aura)
+	local timestamps = {}
+	for i, v in ipairs(self.auras_removed) do
+		if v.spell_id == aura then 
+			table.insert(timestamps, v.timestamp)
+		end
+	end
+	table.sort(timestamps, function(a,b) return a>b end)
+	return timestamps
 end
 
 function SpellStatus: enablePrediction(predict)

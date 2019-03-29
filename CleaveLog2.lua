@@ -23,8 +23,8 @@ function CleaveLog2: targets()
 	local hit = self:targetsHit() or 0
 	local nearby = self:targetsNearby() or 0
 	local low_health = self:targetsLowHealth() or 0
-	local enemies = hit
-	if hit == 0 then enemies = nearby end
+	local enemies = math.max(hit, nearby)
+	--if hit <= 1 then enemies = math.max(hit, nearby) end
 	--if hit > nearby then enemies = nearby end
 	
 	return enemies, hit, nearby, low_health
