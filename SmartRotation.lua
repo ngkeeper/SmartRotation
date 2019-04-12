@@ -1,3 +1,4 @@
+SR_DEBUG = 0
 DEBUG = 0
 
 local refresh = 5	-- refresh rate, Hz
@@ -14,7 +15,7 @@ function createPlayer(currentPlayer, enabled)
 	elseif (talent == 70) then -- "Retribution"
 		player = PaladinRetribution()
 	elseif (talent == 64) then -- "Frost"
-		player = MageFrost()
+		player = MageFrost2()
 	elseif (talent == 102) then -- "Balance"
 		player = DruidBalance()
 	elseif (talent == 103) then -- "Feral"
@@ -142,6 +143,7 @@ SlashCmdList.SRONOFF = function(msg)
 			end
 		end
 		if args[1] == "debug" then 
+			if not args[2] then SR_DEBUG = math.max(0, 1 - SR_DEBUG) end 
 			if args[2] == "buff" then printTable(player.variables.buff) end
 			if args[2] == "dot" then printTable(player.variables.dot) end
 		end

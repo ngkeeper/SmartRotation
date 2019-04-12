@@ -11,13 +11,21 @@ setmetatable(SpellStatus, {
 
 function SpellStatus: _new(spells)
 	
-	self.spells = spells
+	
 	-- spells.gcd		The spell to be used to track gcd
 	-- spells.buff		Buff ids. Can be different from the spell that applies it.
 	-- spells.dot		Dot/debuff ids. Can be different from the spell that applies it.
 	-- spells.cd		Spells with cooldown (and need to be tracked).
 	-- spells.blacklist Blacklisted spells (used to filter combat logs)
+	spells.gcd = spells.gcd or {}			-- The spell to be used to track gcd
+	spells.buff = spells.buff or {}			-- Buff ids. Can be different from the spell that applies it
+	spells.dot = spells.dot or {}			-- Dot/debuff ids. Can be different from the spell that applies it
+	spells.cd = spells.cd or {}				-- Spells with cooldown (and need to be tracked)
+	spells.cleave = spells.cleave or {}		-- Spells that cause cleave damage (and use them as aoe indicators)
+	spells.trace = spells.trace or {}		-- Spells that need to be traced in the combat log
+	spells.auras = spells.auras or {}		-- Auras associated with apply/remove events in the combat log 
 	
+	self.spells = spells
 	self.gcd = 1.5
 	-- if cd of a spell < gcd + reaction, cd is considered 0
 	-- spell icon will pop up [reaction] seconds before it becomes off cd
@@ -45,8 +53,11 @@ function SpellStatus: _new(spells)
 	self.cds: addColumn(self.spells.cd)
 	
 	self.traced_spells = {}
+	self.auras = {}
 	self.auras_removed = {}
-	
+	-- 'self.auras.timestamp_end' should contain same info as 'self.auras_removed'
+	-- however, aura removal will not be recorded if 'AURA_APPLIED' combat log isn't captured
+	-- 'self.auras_removed' records all removal regardless of application info
 	
 	self.casting = {}
 	self.casting.spell = nil
@@ -102,7 +113,26 @@ function SpellStatus: updateCombat()
 			end
 		end
 		
+		if message == "SPELL_AURA_APPLIED" then 
+			--print("APPLIED", spell_name, spell_id)
+			for i, v in ipairs(self.spells.auras) do
+				if v == spell_id then 
+					local aura = {}
+					aura.spell_id = spell_id
+					aura.applied = timestamp
+					table.insert(self.auras, 1, aura)
+					
+					for i, _ in ipairs(self.auras) do 
+						if i > 40 then table.remove(self.auras, i) end
+					end			
+					--print("=====")
+					--printTable(self.auras)
+				end
+			end
+		end
+		
 		if message == "SPELL_AURA_REMOVED" or message == "SPELL_AURA_REMOVED_DOSE" then 
+			--print("REMOVED", spell_name, spell_id)
 			for i, v in ipairs(self.spells.auras) do
 				if v == spell_id then 
 					local aura = {}
@@ -117,7 +147,15 @@ function SpellStatus: updateCombat()
 					--printTable(self.auras_removed)
 				end
 			end
+			
+			if message == "SPELL_AURA_REMOVED" then 
+				for i, v in ipairs(self.auras) do 
+					if v.spell_id == spell_id and not v.removed then v.removed = timestamp end
+				end	
+			end
 		end
+		
+		--if #self.auras > 0 then printTable(self.auras) end
 	end
 end
 
@@ -427,6 +465,19 @@ function SpellStatus: recentlyCast(spell)
 	return cast, timestamp
 end
 
+function SpellStatus: auraUp(aura, timestamp)
+	timestamp = timestamp or time()
+	local aura_up = false
+	
+	for i, v in ipairs(self.auras) do
+		if v.spell_id == aura and v.applied <= timestamp 
+			and (v.removed or timestamp) >= timestamp then 
+			aura_up = true
+		end
+	end
+	return aura_up
+end
+
 function SpellStatus: auraRemoved(aura)
 	local timestamps = {}
 	for i, v in ipairs(self.auras_removed) do
@@ -445,7 +496,7 @@ function SpellStatus: enablePrediction(predict)
 	self.predict_dot = predict
 end
 
-function SpellStatus: gcd()
+function SpellStatus: getGcd()
 	return self.gcd
 end
 

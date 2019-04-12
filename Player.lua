@@ -81,6 +81,12 @@ function Player: getAzeriteRank(powerId)
 	return self.azerite: get("rank", powerId) or 0
 end
 
+function Player: canBeCCed(unit)
+	unit = unit or "target"
+	local level = UnitLevel(unit)
+	return ( level > 0 and level <= 120 ) 
+end
+
 function Player: timeToKill(unit)
 	local target = unit or "target"
 	local hp_target = UnitHealth(target)

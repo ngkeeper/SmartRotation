@@ -15,19 +15,20 @@ function CleaveLog2: _new(spells)
 	self.nearby_enabled = true
 	self.cleave_spells = spells
 	self.melee_range_item = 32321
-	self.low_health_threshold = 2
+	self.low_health_threshold = 0
 	self:reset()
 end
 
 function CleaveLog2: targets()
 	local hit = self:targetsHit() or 0
 	local nearby = self:targetsNearby() or 0
+	local aggro = self:targetsAggro()
 	local low_health = self:targetsLowHealth() or 0
-	local enemies = math.max(hit, nearby)
+	local enemies = math.max(hit, nearby, aggro)
 	--if hit <= 1 then enemies = math.max(hit, nearby) end
 	--if hit > nearby then enemies = nearby end
-	
-	return enemies, hit, nearby, low_health
+	--print(self.aggro)
+	return enemies, hit, nearby, aggro, low_health
 end
 
 function CleaveLog2: targetsHit()
@@ -36,6 +37,10 @@ end
 
 function CleaveLog2: targetsNearby()
 	return self.temporary_disabled and 0 or self.nearby
+end
+
+function CleaveLog2: targetsAggro()
+	return self.temporary_disabled and 0 or self.aggro
 end
 
 function CleaveLog2: targetsLowHealth()
@@ -52,8 +57,10 @@ end
 
 function CleaveLog2: reset()
 	self.enemies = {}	-- enemies hit by the pre-defined cleave spells only
+	self.tanks = {}
 	self.targets_hit = 0
 	self.nearby = 0
+	self.aggro = 0
 	self.low_health = 0
 	self.temporary_disabled = nil
 	self.temporary_disabled_expiration = nil
@@ -104,7 +111,12 @@ function CleaveLog2: temporaryDisable(duration, flag)
 end
 function CleaveLog2: scanNameplates()
 	local nearby = 0
+	local aggro = 0
 	local low_health = 0
+	
+	self: scanTanks()
+	local aggro_list = {}
+	
 	for i = 1, 40 do
 		local unit = "nameplate"..i
 		if UnitExists(unit) then
@@ -112,6 +124,14 @@ function CleaveLog2: scanNameplates()
 				if IsItemInRange(self.melee_range_item, unit) then 
 				--and IsSpellInRange("shred", unit) ~= 0 then
 					nearby = nearby + 1
+				end
+				
+				for i, v in ipairs(self.tanks) do 
+					aggro_list[i] = aggro_list[i] or 0
+					if UnitThreatSituation(v, unit) then 
+						aggro_list[i] = aggro_list[i] + 1
+						--print("+1")
+					end
 				end
 				
 				for i, v in ipairs(self.enemies) do 
@@ -127,9 +147,39 @@ function CleaveLog2: scanNameplates()
 			end
 		end
 	end
+	
+	--printTable(aggro_list)
+	for _, v in pairs(aggro_list) do 
+		aggro = math.max(aggro, v)
+	end
+	
 	self.nearby = nearby;
+	self.aggro = aggro;
 	self.low_health = low_health;
 end
+
+function CleaveLog2: scanTanks()
+	self.tanks = self.tanks or {}
+	
+	self.last_tank_scan = self.last_tank_scan or 0
+	if time() - self.last_tank_scan < 30 then return nil end
+	self.last_tank_scan = time()
+	
+	self.tanks = {}
+	table.insert(self.tanks, "player")
+	if IsInGroup() then 
+		local group = IsInRaid() and "raid" or "party"
+		local unitid = GetNumGroupMembers()
+		for i = 1, unitid do
+			local member = group..i
+			local role = UnitGroupRolesAssigned(member)
+			if role == "TANK" then 
+				table.insert(self.tanks, member)
+			end
+        end
+	end
+end
+
 function CleaveLog2: updateCombat()
 	local timestamp, message, _, _, source_name, _, _, dest_GUID, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
 	local player_name = UnitName("player")

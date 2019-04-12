@@ -80,7 +80,7 @@ function Specialization: getPosition()
 	return self.anchor_x, self.anchor_y
 end
 
-function Specialization: createIcon(texture, size, x, y, cd, strata)
+function Specialization: createIcon(texture, size, x, y, anchor, strata)
 	if type(texture) == "number" then texture = GetSpellTexture(texture) end
 	
 	local icon = {}
@@ -88,6 +88,7 @@ function Specialization: createIcon(texture, size, x, y, cd, strata)
 	icon.size = size or 50
 	icon.x = x or 0
 	icon.y = y or 0
+	icon.anchor = anchor or "CENTER"
 	
 	icon.UIFrame = CreateFrame("Frame", nil, UIParent)
 	icon.UIFrame:SetFrameStrata(strata or "BACKGROUND")
@@ -98,13 +99,11 @@ function Specialization: createIcon(texture, size, x, y, cd, strata)
 	if texture then icon.UITexture:SetTexture(icon.texture) end
 	icon.UITexture:SetAllPoints(icon.UIFrame)
 	
-	if cd ~= false then 
-		icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
-		icon.UICd:SetAllPoints(icon.UIFrame)
-		icon.UICd:SetDrawEdge(false)
-		icon.UICd:SetSwipeColor(1, 1, 1, .85)
-		icon.UICd:SetHideCountdownNumbers(false)
-	end
+	icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
+	icon.UICd:SetAllPoints(icon.UIFrame)
+	icon.UICd:SetDrawEdge(false)
+	icon.UICd:SetSwipeColor(1, 1, 1, .85)
+	icon.UICd:SetHideCountdownNumbers(false)
 	
 	table.insert(self.icons, icon)
 	
@@ -153,7 +152,8 @@ function Specialization: refreshUI()
 	for _, v in ipairs(self.icons) do
 		v.UIFrame: SetWidth(v.size * self.ui_ratio)
 		v.UIFrame: SetHeight(v.size * self.ui_ratio)
-		v.UIFrame: SetPoint("CENTER", self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
+		v.UIFrame: SetPoint(v.anchor, "UIParent", "CENTER", 
+							self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
 		v.UIFrame: Show()
 	end
 	if self.text then 
@@ -244,7 +244,7 @@ function Specialization: doesSpellRemoveAura(spell, aura)
 	for i, v in ipairs(aura_timestamps) do 
 		time_diff = math.min(time_diff, math.abs(v - spell_timestamp))
 	end
-	return ( time_diff <= 1 ) and 1 or 0
+	return ( time_diff <= .5 ) 
 end
 
 function Specialization: newActionList(actions)
@@ -290,7 +290,7 @@ function Specialization: newAction(spell, list, conditions, enabled)
 	return action
 end
 
-function Specialization: updateAction(action, conditions, enabled)
+function Specialization: updateAction(action, conditions, override, enabled)
 	enabled = not (enabled == false)
 	action.enabled = enabled
 	
@@ -318,6 +318,10 @@ function Specialization: updateAction(action, conditions, enabled)
 	end
 	action.condition = all_conditions_met
 	action.triggered = action.usable and action.condition and action.enabled
+	
+	if override == true or override == false then 
+		action.triggered = override
+	end	
 	
 	return action
 end

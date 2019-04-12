@@ -82,9 +82,7 @@ function DruidFeral:_new()
 						202028,		--"Brutal Slash"
 						274837,		--"Feral Frenzy"
 						102543,		--"Incarnation: King of the Jungle"
-					  }
-    spells.cast 	= {	8936, 		--"Regrowth"
-					  }		
+					  }	
 	spells.cleave 	= {	106785, 	--"Swipe"
 						106830, 	--"Thrash"
 						205381, 	--"Primal Wrath"
@@ -99,6 +97,7 @@ function DruidFeral:_new()
 					  }
 	spells.auras 	= { 145152, 	-- "Bloodtalons"
 						5215, 		-- "Prowl"
+						5217, 		-- "Tiger's Fury"
 					  }
 
 	Specialization:_new(spells)
@@ -107,8 +106,8 @@ function DruidFeral:_new()
 	self.cleave:setTimeout(6)
 	self.cleave:setLowHealthThreshold(self.player:dps() * 3)
 	
-	self.icon_cooldown = Specialization:createIcon(106951, 40, -50, 0)
-	self.icon_tigers_fury_small = Specialization:createIcon(5217, 25, -12, 12, nil, "HIGH")
+	self.icon_cooldown = self:createIcon(106951, 40, -50, 0)
+	self.icon_tigers_fury_small = self:createIcon(5217, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
 
 end
 
@@ -170,7 +169,8 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.main.prowl, not var.buff.prowl.up)
 	self:updateAction(act.main.cat_form, not var.buff.cat_form.up)
 	self:updateAction(act.main.rake, var.buff.prowl.up or var.buff.shadowmeld.up)
-	self:updateAction(act.main.ferocious_bite, {not var.disable_finisher, var.cp >= 1, var.dot.rip.up, (var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth})
+	self:updateAction(act.main.ferocious_bite, {not var.disable_finisher, var.cp >= 1, var.dot.rip.up, 
+												(var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth})
 	self:updateAction(act.main.regrowth, {(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
 										  not var.buff.bloodtalons.up, not var.buff.incarnation.up or var.dot.rip.remain < 8})
 
@@ -187,7 +187,8 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.finishers.primal_wrath2, {var.targets > 1, var.talent.bloodtalons})
 	self:updateAction(act.finishers.rip, {not var.dot.rip.up, var.ttk > 8})
 	self:updateAction(act.finishers.rip2, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
-	self:updateAction(act.finishers.rip3, {var.dot.rip.remain < 20, var.multiplier.rip == 1, var.buff.bloodtalons.up, var.ttk > 8})
+	self:updateAction(act.finishers.rip3, {var.dot.rip.remain < 20, var.new_multiplier_rip > var.multiplier.rip, 
+										   var.buff.bloodtalons.up, var.ttk > 8})
 	self:updateAction(act.finishers.savage_roar2, var.buff.savage_roar.remain < 12)
 	self:updateAction(act.finishers.maim, var.buff.iron_jaws.up)
 	self:updateAction(act.finishers.ferocious_bite)
@@ -212,8 +213,9 @@ function DruidFeral:updateAllActions()
 												   not var.buff.scent_of_blood.up, var.targets > 3})
 	self:updateAction(act.generators.swipe_cat, {not var.talent.brutal_slash, var.buff.scent_of_blood.up})
 	self:updateAction(act.generators.rake, {var.targets <= 3, var.ttk > 6, not var.dot.rake.up or
-											(not var.talent.bloodtalons and var.dot.rake.refreshable and var.multiplier.rake < 2)})
-	self:updateAction(act.generators.rake2, {var.targets <= 3, var.multiplier.rake <= 1.25,
+											(not var.talent.bloodtalons and var.dot.rake.refreshable and 
+											var.new_multiplier_rake > var.multiplier.rake * 0.85)})
+	self:updateAction(act.generators.rake2, {var.targets <= 3, var.new_multiplier_rake > var.multiplier.rake * 0.85,
 											 var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
 	self:updateAction(act.generators.moonfire_cat, {var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
 													not var.buff.predatory_swiftness.up, var.cp < 5})
@@ -281,30 +283,32 @@ function DruidFeral:updateVariables()
 	var.dot.thrash = self.spells:dot(106830, 15)
 	var.dot.moonfire = self.spells:dot(164812, 16)
 	
-	local prowl_rake = self:doesSpellRemoveAura(1822, 5215)
-	local bloodtalons_rip = self:doesSpellRemoveAura(1079, 145152)
-	local bloodtalons_rake = self:doesSpellRemoveAura(1822, 145152)
-	local bloodtalons_thrash = self:doesSpellRemoveAura(106830, 145152)
+	var.new_multiplier_rip = ( var.buff.tigers_fury.up and 1.15 or 1 ) * ( var.buff.bloodtalons.up and 1.25 or 1 )
+	var.new_multiplier_thrash = var.new_multiplier_rip
+	var.new_multiplier_rake = var.new_multiplier_rip * ( var.buff.prowl.up and 2 or 1 )
 	
 	var.multiplier = var.multiplier or {}
 	var.multiplier.rip = var.multiplier.rip or 1
 	var.multiplier.rake = var.multiplier.rake or 1
 	var.multiplier.thrash = var.multiplier.thrash or 1
 	
-	if bloodtalons_rip then 
-		var.multiplier.rip = 1 + bloodtalons_rip * 0.25
-	end
+	local cast_rip, time_rip, cast_rake, time_rake, cast_thrash, time_thrash
+	cast_rip, time_rip = self.spells:recentlyCast(1079)
+	cast_rake, time_rake = self.spells:recentlyCast(1822)
+	cast_thrash, time_thrash = self.spells:recentlyCast(106830)
 	
-	if prowl_rake and bloodtalons_rake then 
-		var.multiplier.rake = ( 1 + prowl_rake ) * ( 1 + bloodtalons_rake * 0.25 )
-	elseif prowl_rake then 
-		var.multiplier.rake = 1 + prowl_rake
-	elseif bloodtalons_rake then 
-		var.multiplier.rake = 1 + bloodtalons_rake * 0.25
+	if cast_rake then 
+		var.multiplier.rake = self.spells:auraUp(5217, time_rake) and 1.15 or 1
+		var.multiplier.rake = var.multiplier.rake * (self:doesSpellRemoveAura(1822, 145152) and 1.25 or 1)
+		var.multiplier.rake = var.multiplier.rake * (self:doesSpellRemoveAura(1822, 5215) and 2 or 1)
 	end
-	
-	if bloodtalons_thrash then 
-		var.multiplier.thrash = 1 + bloodtalons_thrash * 0.25
+	if cast_rip then 
+		var.multiplier.rip = self.spells:auraUp(5217, time_rip) and 1.15 or 1
+		var.multiplier.rip = var.multiplier.rip * (self:doesSpellRemoveAura(1079, 145152) and 1.25 or 1)
+	end
+	if cast_thrash then 
+		var.multiplier.thrash = self.spells:auraUp(5217, time_thrash) and 1.15 or 1
+		var.multiplier.thrash = var.multiplier.thrash * (self:doesSpellRemoveAura(106830, 145152) and 1.25 or 1)
 	end
 	
 	var.multiplier.rip = var.dot.rip.up and var.multiplier.rip or 0
@@ -320,7 +324,7 @@ function DruidFeral:nextSpell()
 
 	-- Turn cleave on/off based on the spells used
 	local shredCast, shredTime = self.spells:recentlyCast(5221)
-	if shredCast and not self.variables.talent.brutal_slash then 
+	if shredCast and self.variables.targets > 1 and not self.variables.talent.brutal_slash then 
 		self.cleave:temporaryDisable(8, shredTime)
 	end 
 	local swipeCast, swipeTime = self.spells:recentlyCast(106785)
@@ -352,6 +356,9 @@ function DruidFeral:nextSpell()
 		self:updateIcon(self.icon_tigers_fury_small, nil)
 	end
 	
-	-- local str = tostring(self.cleave:targets()) .." "..tostring( self.cleave:targetsLowHealth())
-	-- self.text:SetText(str)
+	local str = ""
+	if SR_DEBUG > 0 then 
+		str = tostring(self.cleave:targets()).." "..tostring(self.cleave:targetsAggro())
+	end
+	self.text:SetText(str)
 end
