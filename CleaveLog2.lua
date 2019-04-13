@@ -19,32 +19,35 @@ function CleaveLog2: _new(spells)
 	self:reset()
 end
 
-function CleaveLog2: targets()
+function CleaveLog2: targets(override)
 	local hit = self:targetsHit() or 0
 	local nearby = self:targetsNearby() or 0
-	local aggro = self:targetsAggro()
+	local aggro = self:targetsAggro() or 0
 	local low_health = self:targetsLowHealth() or 0
+	
 	local enemies = math.max(hit, nearby, aggro)
-	--if hit <= 1 then enemies = math.max(hit, nearby) end
-	--if hit > nearby then enemies = nearby end
-	--print(self.aggro)
+	if hit > 0 then enemies = math.max(hit, nearby) end
+	
+	if not override then 
+		enemies = self.temporary_disabled and 0 or enemies
+	end
 	return enemies, hit, nearby, aggro, low_health
 end
 
 function CleaveLog2: targetsHit()
-	return self.temporary_disabled and 0 or self.targets_hit
+	return self.targets_hit
 end
 
 function CleaveLog2: targetsNearby()
-	return self.temporary_disabled and 0 or self.nearby
+	return self.nearby
 end
 
 function CleaveLog2: targetsAggro()
-	return self.temporary_disabled and 0 or self.aggro
+	return self.aggro
 end
 
 function CleaveLog2: targetsLowHealth()
-	return self.temporary_disabled and 0 or self.low_health
+	return self.low_health
 end
 
 function CleaveLog2: setTimeout(timeout)
@@ -178,6 +181,7 @@ function CleaveLog2: scanTanks()
 			end
         end
 	end
+	--printTable(self.tanks)
 end
 
 function CleaveLog2: updateCombat()
@@ -196,6 +200,8 @@ function CleaveLog2: updateCombat()
 	if not(source_name == player_name) or not(message == "SPELL_DAMAGE") then 
 		return nil 
 	end
+	
+	--print(spell_name.." "..tostring(spell_id).." "..tostring(dest_GUID))
 	
     local is_relevant_spell = false
 	

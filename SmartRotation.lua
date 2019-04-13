@@ -1,7 +1,7 @@
 SR_DEBUG = 0
 DEBUG = 0
 
-local refresh = 5	-- refresh rate, Hz
+local refresh = 10	-- refresh rate, Hz
 
 -- player object creation function
 function createPlayer(currentPlayer, enabled)

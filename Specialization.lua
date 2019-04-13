@@ -166,6 +166,14 @@ function Specialization: update()
 	if not self.enabled then return nil end
 	self.spells: update()
 	self.cleave: update()
+	
+	local str = ""
+	if SR_DEBUG > 0 then 
+		str = tostring(self.cleave:targets(true)).." "..
+			  tostring(self.cleave:targetsAggro()).." "..
+			  tostring(self.cleave:targetsLowHealth())
+	end
+	self.text:SetText(str)
 end
 
 function Specialization: updateCombat()		-- call on combat log event
@@ -179,25 +187,30 @@ function Specialization: updateTalent()		-- call on talent change events
 	self.talent = self.player:talent()
 end
 
-function Specialization: updateIcon(iconId, spell, cdSpell)
+function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 	size = not(button) and self.size
 	icon = self.icons[iconId] or self.icons[self.icon]
 	spell = spell or self.next_spell
 	
 	local color = 0
-	if self.enabled and spell then 
-		icon.UITexture: SetTexture(GetSpellTexture(spell))
-		--icon.UIFrame: Show()
-		if UnitCanAttack("player", "target") then 
-			local spellname = select(1, GetSpellInfo(spell))
-			if spellname then 
-				color = ((IsSpellInRange(spellname, "target") == 0) and 1) or 0
-			end
-		end
+	if texture then 	
+		icon.UITexture: SetTexture(texture)
 	else
-		--icon.UIFrame: Hide()
-		icon.UITexture: SetTexture(nil)
+		if self.enabled and spell then 
+			icon.UITexture: SetTexture(GetSpellTexture(spell))
+			--icon.UIFrame: Show()
+			if UnitCanAttack("player", "target") then 
+				local spellname = select(1, GetSpellInfo(spell))
+				if spellname then 
+					color = ((IsSpellInRange(spellname, "target") == 0) and 1) or 0
+				end
+			end
+		else
+			--icon.UIFrame: Hide()
+			icon.UITexture: SetTexture(nil)
+		end
 	end
+	
 	if self.next_spell_on_focus then 
 		--self.text:SetText("")
 		color = 2
@@ -233,16 +246,15 @@ end
 
 function Specialization: doesSpellRemoveAura(spell, aura)
 	local aura_timestamps = self.spells: auraRemoved(aura)
-	local spell_cast, spell_timestamp = self.spells: recentlyCast(spell)
+	local recent = self.spells: recentlyCast(spell)
 	
-	if not spell_cast then 
+	if not recent.cast then 
 		return nil
 	end
-	--print(spell_cast, spell_timestamp, aura_timestamps[1])
 	
-	local time_diff = spell_timestamp
+	local time_diff = recent.time
 	for i, v in ipairs(aura_timestamps) do 
-		time_diff = math.min(time_diff, math.abs(v - spell_timestamp))
+		time_diff = math.min(time_diff, math.abs(v - recent.time))
 	end
 	return ( time_diff <= .5 ) 
 end
@@ -286,7 +298,7 @@ function Specialization: newAction(spell, list, conditions, enabled)
 		action.priority = action.priority + 1
 	end
 	
-	self: updateAction(action, conditions, enabled)
+	self: updateAction(action, conditions, _, enabled)
 	return action
 end
 
@@ -296,7 +308,7 @@ function Specialization: updateAction(action, conditions, override, enabled)
 	
 	if action.spell then 
 		action.usable = self.spells:isSpellReady(action.spell)
-		if action.spellspell == "POOL" then 
+		if action.spell == "POOL" then 
 			action.usable = true
 		end
 	else

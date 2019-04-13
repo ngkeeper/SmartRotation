@@ -70,6 +70,7 @@ function DruidFeral:_new()
 						52610,		--"Savage Roar"
 						276021,		--"Iron Jaws"
 						285646,		--"Scent of Blood"
+						287916,		--"V.I.G.O.R Engaged"
 					  }	
     spells.dot 		= {	1079,		--"Rip"
 						155722,		--"Rake"
@@ -82,6 +83,7 @@ function DruidFeral:_new()
 						202028,		--"Brutal Slash"
 						274837,		--"Feral Frenzy"
 						102543,		--"Incarnation: King of the Jungle"
+						58984,		--"58984"
 					  }	
 	spells.cleave 	= {	106785, 	--"Swipe"
 						106830, 	--"Thrash"
@@ -104,9 +106,8 @@ function DruidFeral:_new()
 	
 	self:createActions()
 	self.cleave:setTimeout(6)
-	self.cleave:setLowHealthThreshold(self.player:dps() * 3)
 	
-	self.icon_cooldown = self:createIcon(106951, 40, -50, 0)
+	self.icon_cooldown 			= self:createIcon(106951, 40, -50, 0)
 	self.icon_tigers_fury_small = self:createIcon(5217, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
 
 end
@@ -115,47 +116,48 @@ function DruidFeral:createActions()
 	local act = self.actions
 	
 	act.main = {}
-	act.main.prowl = self:newAction(5215, act.main)
-	act.main.cat_form = self:newAction(768, act.main)
-	act.main.rake = self:newAction(1822, act.main)
-	act.main.ferocious_bite = self:newAction(22568, act.main)
-	act.main.regrowth = self:newAction(8936, act.main)
+	act.main.prowl					= self:newAction(5215, act.main)
+	act.main.cat_form 				= self:newAction(768, act.main)
+	act.main.rake 					= self:newAction(1822, act.main)
+	act.main.ferocious_bite 		= self:newAction(22568, act.main)
+	act.main.regrowth 				= self:newAction(8936, act.main)
 	
 	act.cooldowns = {}
-	act.cooldowns.berserk = self:newAction(106951, act.cooldowns)
-	act.cooldowns.tigers_fury = self:newAction(5217, act.cooldowns)
-	act.cooldowns.tigers_fury2 = self:newAction(5217, act.cooldowns)
-	act.cooldowns.feral_frenzy = self:newAction(274837, act.cooldowns)
-	act.cooldowns.incarnation = self:newAction(102543, act.cooldowns)
-	--act.cooldowns.shadowmeld = self:newAction(, act.cooldowns)
+	act.cooldowns.berserk 			= self:newAction(106951, act.cooldowns)
+	act.cooldowns.tigers_fury 		= self:newAction(5217, act.cooldowns)
+	act.cooldowns.tigers_fury2 		= self:newAction(5217, act.cooldowns)
+	act.cooldowns.vigor 			= self:newAction(165572, act.cooldowns)		-- 165572 is NOT a spell id. It's the item ID for VIGOR
+	act.cooldowns.feral_frenzy 		= self:newAction(274837, act.cooldowns)
+	act.cooldowns.incarnation 		= self:newAction(102543, act.cooldowns)
+	act.cooldowns.shadowmeld 		= self:newAction(58984, act.cooldowns)
 	
 	act.finishers = {}
-	act.finishers.savage_roar = self:newAction(52610, act.finishers)
-	act.finishers.primal_wrath = self:newAction(285381, act.finishers)
-	act.finishers.primal_wrath2 = self:newAction(285381, act.finishers)
-	act.finishers.rip = self:newAction(1079, act.finishers)
-	act.finishers.rip2 = self:newAction(1079, act.finishers)
-	act.finishers.rip3 = self:newAction(1079, act.finishers)
-	act.finishers.savage_roar2 = self:newAction(52610, act.finishers)
-	act.finishers.maim = self:newAction(22570, act.finishers)
-	act.finishers.ferocious_bite = self:newAction(22568, act.finishers)
+	act.finishers.savage_roar 		= self:newAction(52610, act.finishers)
+	act.finishers.primal_wrath 		= self:newAction(285381, act.finishers)
+	act.finishers.primal_wrath2 	= self:newAction(285381, act.finishers)
+	act.finishers.rip 				= self:newAction(1079, act.finishers)
+	act.finishers.rip2 				= self:newAction(1079, act.finishers)
+	act.finishers.rip3 				= self:newAction(1079, act.finishers)
+	act.finishers.savage_roar2 		= self:newAction(52610, act.finishers)
+	act.finishers.maim 				= self:newAction(22570, act.finishers)
+	act.finishers.ferocious_bite 	= self:newAction(22568, act.finishers)
 	
 	act.generators = {}
-	act.generators.regrowth = self:newAction(8936, act.generators)
-	act.generators.regrowth2 = self:newAction(8936, act.generators)
-	act.generators.brutal_slash = self:newAction(202028, act.generators)
-	act.generators.thrash_cat = self:newAction(106830, act.generators)
-	act.generators.thrash_cat2 = self:newAction(106830, act.generators)
-	act.generators.swipe_cat = self:newAction(106785, act.generators)
-	act.generators.rake = self:newAction(1822, act.generators)
-	act.generators.rake2 = self:newAction(1822, act.generators)
-	act.generators.moonfire_cat = self:newAction(8921, act.generators)
-	act.generators.brutal_slash2 = self:newAction(202028, act.generators)
-	act.generators.moonfire_cat2 = self:newAction(8921, act.generators)
-	act.generators.thrash_cat3 = self:newAction(106830, act.generators)
-	act.generators.thrash_cat4 = self:newAction(106830, act.generators)
-	act.generators.swipe_cat2 = self:newAction(106785, act.generators)
-	act.generators.shred = self:newAction(5221, act.generators)
+	act.generators.regrowth 		= self:newAction(8936, act.generators)
+	act.generators.regrowth2 		= self:newAction(8936, act.generators)
+	act.generators.brutal_slash 	= self:newAction(202028, act.generators)
+	act.generators.thrash_cat 		= self:newAction(106830, act.generators)
+	act.generators.thrash_cat2 		= self:newAction(106830, act.generators)
+	act.generators.swipe_cat 		= self:newAction(106785, act.generators)
+	act.generators.rake 			= self:newAction(1822, act.generators)
+	act.generators.rake2 			= self:newAction(1822, act.generators)
+	act.generators.moonfire_cat 	= self:newAction(8921, act.generators)
+	act.generators.brutal_slash2 	= self:newAction(202028, act.generators)
+	act.generators.moonfire_cat2 	= self:newAction(8921, act.generators)
+	act.generators.thrash_cat3 		= self:newAction(106830, act.generators)
+	act.generators.thrash_cat4 		= self:newAction(106830, act.generators)
+	act.generators.swipe_cat2 		= self:newAction(106785, act.generators)
+	act.generators.shred 			= self:newAction(5221, act.generators)
 	
 	--act.opener.tigers_fury = self:newAction()
 	--act.opener.rake = self:newAction()
@@ -166,31 +168,38 @@ function DruidFeral:updateAllActions()
 	local act = self.actions
 	
 	-- main / pre-combat action list
-	self:updateAction(act.main.prowl, not var.buff.prowl.up)
-	self:updateAction(act.main.cat_form, not var.buff.cat_form.up)
-	self:updateAction(act.main.rake, var.buff.prowl.up or var.buff.shadowmeld.up)
-	self:updateAction(act.main.ferocious_bite, {not var.disable_finisher, var.cp >= 1, var.dot.rip.up, 
-												(var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth})
-	self:updateAction(act.main.regrowth, {(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
-										  not var.buff.bloodtalons.up, not var.buff.incarnation.up or var.dot.rip.remain < 8})
+	self:updateAction(act.main.prowl, 					not var.buff.prowl.up)
+	self:updateAction(act.main.cat_form, 				not var.buff.cat_form.up)
+	self:updateAction(act.main.rake, 				  {	var.buff.prowl.up or var.buff.shadowmeld.up, var.targets < 8 } )
+	self:updateAction(act.main.ferocious_bite, 		  {	not var.disable_finisher, var.cp >= 1, var.dot.rip.up, 
+														(var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth})
+	self:updateAction(act.main.regrowth, 			  {	(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
+														not var.buff.bloodtalons.up, 
+														not var.buff.incarnation.up or var.dot.rip.remain < 8})
 
 	-- cooldown action list		
-	self:updateAction(act.cooldowns.berserk, {var.energy > 30, var.cooldown.tigers_fury.remain > 5 or var.buff.tigers_fury.up})
-	self:updateAction(act.cooldowns.tigers_fury, var.energy_max - var.energy > 60 )
-	--self:updateAction(act.cooldowns.tigers_fury2, {var.energy_max - var.energy > 50, var.targets > 2})
-	self:updateAction(act.cooldowns.feral_frenzy, var.cp == 0)
-	self:updateAction(act.cooldowns.incarnation, {var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up})
+	self:updateAction(act.cooldowns.berserk, 		  {	var.energy > 30, 
+														var.cooldown.tigers_fury.remain > 5 or var.buff.tigers_fury.up})
+	self:updateAction(act.cooldowns.tigers_fury, 		var.energy_max - var.energy > ( var.buff.tigers_fury.up and 60 or 50 ) )
+	self:updateAction(act.cooldowns.vigor, _,		    var.buff.vigor_engaged.stack == 6 and var.cooldown.vigor.up )
+	self:updateAction(act.cooldowns.feral_frenzy, 		var.cp == 0)
+	self:updateAction(act.cooldowns.incarnation, 	  {	var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up})
+	self:updateAction(act.cooldowns.shadowmeld, 	  {	var.cp < 5, var.energy >= 35, var.multiplier.rip < 2.1, 
+														var.buff.tigers_fury.up, 
+														(var.buff.bloodtalons.up or not var.talent.bloodtalons), 
+														(not var.talent.incarnation or var.cooldown.incarnation.remain > 18), 
+														not var.buff.incarnation.up })
 	
 	-- finishers action list
-	self:updateAction(act.finishers.savage_roar, not var.buff.savage_roar.up)
-	self:updateAction(act.finishers.primal_wrath, {var.targets > 1, var.dot.rip.remain < 4})
-	self:updateAction(act.finishers.primal_wrath2, {var.targets > 1, var.talent.bloodtalons})
-	self:updateAction(act.finishers.rip, {not var.dot.rip.up, var.ttk > 8})
-	self:updateAction(act.finishers.rip2, {var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
-	self:updateAction(act.finishers.rip3, {var.dot.rip.remain < 20, var.new_multiplier_rip > var.multiplier.rip, 
-										   var.buff.bloodtalons.up, var.ttk > 8})
-	self:updateAction(act.finishers.savage_roar2, var.buff.savage_roar.remain < 12)
-	self:updateAction(act.finishers.maim, var.buff.iron_jaws.up)
+	self:updateAction(act.finishers.savage_roar, 		not var.buff.savage_roar.up)
+	self:updateAction(act.finishers.primal_wrath, 	  {	var.targets > 1, var.dot.rip.remain < 4})
+	self:updateAction(act.finishers.primal_wrath2, 	  {	var.targets > 1, var.talent.bloodtalons})
+	self:updateAction(act.finishers.rip, 			  {	not var.dot.rip.up, var.ttk > 8})
+	self:updateAction(act.finishers.rip2, 			  {	var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
+	self:updateAction(act.finishers.rip3, 			  {	var.dot.rip.remain < 20, var.new_multiplier_rip > var.multiplier.rip, 
+														var.buff.bloodtalons.up, var.ttk > 8})
+	self:updateAction(act.finishers.savage_roar2, 		var.buff.savage_roar.remain < 12)
+	self:updateAction(act.finishers.maim, 				var.buff.iron_jaws.up)
 	self:updateAction(act.finishers.ferocious_bite)
 	
 	-- keep swiping for aoe, even at 5 cp
@@ -203,45 +212,51 @@ function DruidFeral:updateAllActions()
 	end
 	
 	-- generators action list
-	self:updateAction(act.generators.regrowth, {var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
-												not var.buff.bloodtalons.up, var.cp == 4, var.dot.rake.remain < 4})
-	self:updateAction(act.generators.regrowth2, {var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
-												not var.buff.bloodtalons.up, var.talent.lunar_inspiration, var.dot.rake.remain < 1})
-	self:updateAction(act.generators.brutal_slash, var.targets > 2)
-	self:updateAction(act.generators.thrash_cat, {var.dot.thrash.refreshable, not var.buff.bloodtalons.up, var.targets > 2})
-	self:updateAction(act.generators.thrash_cat2, {var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
-												   not var.buff.scent_of_blood.up, var.targets > 3})
-	self:updateAction(act.generators.swipe_cat, {not var.talent.brutal_slash, var.buff.scent_of_blood.up})
-	self:updateAction(act.generators.rake, {var.targets <= 3, var.ttk > 6, not var.dot.rake.up or
-											(not var.talent.bloodtalons and var.dot.rake.refreshable and 
-											var.new_multiplier_rake > var.multiplier.rake * 0.85)})
-	self:updateAction(act.generators.rake2, {var.targets <= 3, var.new_multiplier_rake > var.multiplier.rake * 0.85,
-											 var.talent.bloodtalons, var.buff.bloodtalons.up, var.dot.rake.remain < 7, var.ttk > 6})
-	self:updateAction(act.generators.moonfire_cat, {var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
-													not var.buff.predatory_swiftness.up, var.cp < 5})
-	self:updateAction(act.generators.brutal_slash2, {var.buff.tigers_fury.up, var.targets <= 1})
-	self:updateAction(act.generators.moonfire_cat2, {var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
-	self:updateAction(act.generators.thrash_cat3, {var.dot.thrash.refreshable, not var.buff.bloodtalons.up, 
-												  ((var.azerite.wild_fleshrending and 
-												  (not var.buff.incarnation.up or var.azerite.wild_fleshrending)) or 
-												  var.targets > 1)})
-	self:updateAction(act.generators.thrash_cat4, {var.dot.thrash.refreshable, not var.azerite.wild_fleshrending, 
-												   var.buff.clearcasting.up, not var.buff.bloodtalons.up, 
-												  (not var.buff.incarnation.up or var.azerite.wild_fleshrending)})
-	self:updateAction(act.generators.swipe_cat2, {not var.talent.brutal_slash, var.targets > 1} )
-	self:updateAction(act.generators.shred, (var.dot.rake.remain > (75 - var.energy - 10)) or var.buff.clearcasting.up)
+	self:updateAction(act.generators.regrowth, 		  {	var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
+														not var.buff.bloodtalons.up, var.cp == 4, var.dot.rake.remain < 4})
+	self:updateAction(act.generators.regrowth2, 	  {	var.talent.bloodtalons, var.buff.predatory_swiftness.up, 
+														not var.buff.bloodtalons.up, var.talent.lunar_inspiration, 
+														var.dot.rake.remain < 1})
+	self:updateAction(act.generators.brutal_slash, 		var.targets > 2)
+	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable, not var.buff.bloodtalons.up, var.targets > 2})
+	self:updateAction(act.generators.thrash_cat2, 	  {	var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
+														not var.buff.scent_of_blood.up or not var.dot.thrash.up, var.targets > 3})
+	self:updateAction(act.generators.swipe_cat, 	  {	not var.talent.brutal_slash, var.buff.scent_of_blood.up})
+	self:updateAction(act.generators.rake, 			  {	var.targets <= 3, var.ttk > 6, not var.dot.rake.up or
+														(not var.talent.bloodtalons and var.dot.rake.refreshable and 
+														var.new_multiplier_rake > var.multiplier.rake * 0.85)})
+	self:updateAction(act.generators.rake2, 		  {	var.targets <= 3, var.new_multiplier_rake > var.multiplier.rake * 0.85,
+														var.talent.bloodtalons, var.buff.bloodtalons.up, 
+														var.dot.rake.remain < 7, var.ttk > 6})
+	self:updateAction(act.generators.moonfire_cat, 	  {	var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
+														not var.buff.predatory_swiftness.up, var.cp < 5})
+	self:updateAction(act.generators.brutal_slash2,   {	var.buff.tigers_fury.up, var.targets <= 1})
+	self:updateAction(act.generators.moonfire_cat2,   {	var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
+	self:updateAction(act.generators.thrash_cat3, 	  {	var.dot.thrash.refreshable, not var.buff.bloodtalons.up, 
+														((var.azerite.wild_fleshrending and 
+														(not var.buff.incarnation.up or var.azerite.wild_fleshrending)) or 
+														var.targets > 1)})
+	self:updateAction(act.generators.thrash_cat4, 	  {	var.dot.thrash.refreshable, not var.azerite.wild_fleshrending, 
+														var.buff.clearcasting.up, not var.buff.bloodtalons.up, 
+														(not var.buff.incarnation.up or var.azerite.wild_fleshrending)})
+	self:updateAction(act.generators.swipe_cat2, 	  {	not var.talent.brutal_slash, var.targets > 1} )
+	self:updateAction(act.generators.shred, 			(var.dot.rake.remain > (65 - var.energy)) or var.buff.clearcasting.up )
 end
 
 function DruidFeral:updateVariables()
 	local var = self.variables
 	
-	var.dt = self.spells:timeNextSpell()
-	var.energy = self.player:power(Enum.PowerType.Energy)
-	var.energy_max = self.player:powerMax(Enum.PowerType.Energy)
-	var.cp = self.player:power(Enum.PowerType.ComboPoints)
-	var.ttk = self.player:timeToKill()
+	var.dt 			= self.spells:timeNextSpell()
+	var.energy 		= self.player:power(Enum.PowerType.Energy)
+	var.energy_max 	= self.player:powerMax(Enum.PowerType.Energy)
+	var.cp 			= self.player:power(Enum.PowerType.ComboPoints)
+	
+	self.cleave:setLowHealthThreshold(self.player:dps() * 3)
 	var.targets = self.cleave:targets()
-	var.targets_low_health = self.cleave:targetsLowHealth()
+	var.targets_low_health = select(5, self.cleave:targets())
+	
+	var.ttk = self.player:timeToKill()
+	var.ttk_effective = var.ttk * math.min(2, 0.9 + (var.targets == 0 and 0.1 or 0) + var.targets / 10 )
 	
 	var.azerite = {}
 	var.azerite.wild_fleshrending = self.player: getAzeriteRank(359) > 0
@@ -250,115 +265,124 @@ function DruidFeral:updateVariables()
 	var.energy = math.min(var.energy_max, var.energy + 10 * ( 1 + var.haste/100) * var.dt)
 	
 	var.talent = var.talent or {}
-	var.talent.predator = self.talent[1] == 1
-	var.talent.sabertooth = self.talent[1] == 2
-	var.talent.lunar_inspiration = self.talent[1] == 3
-	var.talent.incarnation = self.talent[5] == 3
-	var.talent.scent_of_blood = self.talent[6] == 1
-	var.talent.brutal_slash = self.talent[6] == 2
-	var.talent.moment_of_clarity = self.talent[7] == 1
-	var.talent.bloodtalons = self.talent[7] == 2
+	var.talent.predator 			= self.talent[1] == 1
+	var.talent.sabertooth 			= self.talent[1] == 2
+	var.talent.lunar_inspiration 	= self.talent[1] == 3
+	var.talent.incarnation 			= self.talent[5] == 3
+	var.talent.scent_of_blood 		= self.talent[6] == 1
+	var.talent.brutal_slash 		= self.talent[6] == 2
+	var.talent.moment_of_clarity 	= self.talent[7] == 1
+	var.talent.bloodtalons 			= self.talent[7] == 2
 	
 	var.cooldown = var.cooldown or {}
-	var.cooldown.tigers_fury = self.spells:cooldown(5217)
-	var.cooldown.berserk = self.spells:cooldown(106951)
+	var.cooldown.tigers_fury 		= self.spells:cooldown(5217)
+	var.cooldown.berserk 			= self.spells:cooldown(106951)
+	var.cooldown.incarnation 		= self.spells:cooldown(102543)
+	var.cooldown.vigor				= self.spells:itemCooldown(165572)
 	
 	var.buff = var.buff or {}
-	var.buff.prowl = self.spells:buff(5215)
-	var.buff.shadowmeld = self.spells:buff(58984)
-	var.buff.cat_form = self.spells:buff(768)
-	var.buff.predatory_swiftness = self.spells:buff(69369)
-	var.buff.bloodtalons = self.spells:buff(145152)
-	var.buff.incarnation = self.spells:buff(102543)
-	var.buff.tigers_fury = self.spells:buff(5217)
-	var.buff.berserk = self.spells:buff(106951)
-	var.buff.scent_of_blood = self.spells:buff(285646)
-	var.buff.clearcasting = self.spells:buff(135700)
-	var.buff.iron_jaws = self.spells:buff(276021)
-	var.buff.savage_roar = self.spells:buff(52610)
+	var.buff.prowl 					= self.spells:buff(5215)
+	var.buff.shadowmeld 			= self.spells:buff(58984)
+	var.buff.cat_form 				= self.spells:buff(768)
+	var.buff.predatory_swiftness 	= self.spells:buff(69369)
+	var.buff.bloodtalons 			= self.spells:buff(145152)
+	var.buff.incarnation 			= self.spells:buff(102543)
+	var.buff.tigers_fury 			= self.spells:buff(5217)
+	var.buff.berserk 				= self.spells:buff(106951)
+	var.buff.scent_of_blood 		= self.spells:buff(285646)
+	var.buff.clearcasting 			= self.spells:buff(135700)
+	var.buff.iron_jaws 				= self.spells:buff(276021)
+	var.buff.savage_roar 			= self.spells:buff(52610)
+	var.buff.vigor_engaged			= self.spells:buff(287916)
 	
 	var.dot = var.dot or {}
-	var.dot.rip = self.spells:dot(1079, (var.cp + 1) * 4)
-	var.dot.rake = self.spells:dot(155722, 15)
-	var.dot.thrash = self.spells:dot(106830, 15)
-	var.dot.moonfire = self.spells:dot(164812, 16)
+	var.dot.rip 					= self.spells:dot(1079, (var.cp + 1) * 4)
+	var.dot.rake 					= self.spells:dot(155722, 15)
+	var.dot.thrash 					= self.spells:dot(106830, 15)
+	var.dot.moonfire 				= self.spells:dot(164812, 16)
 	
-	var.new_multiplier_rip = ( var.buff.tigers_fury.up and 1.15 or 1 ) * ( var.buff.bloodtalons.up and 1.25 or 1 )
-	var.new_multiplier_thrash = var.new_multiplier_rip
-	var.new_multiplier_rake = var.new_multiplier_rip * ( var.buff.prowl.up and 2 or 1 )
+	var.recent = var.recent or {}
+	var.recent.rip					= self.spells:recentlyCast(1079)
+	var.recent.rake 				= self.spells:recentlyCast(1822)
+	var.recent.thrash	 			= self.spells:recentlyCast(106830)
+	var.recent.primal_wrath			= self.spells:recentlyCast(257537)
+	var.recent.ferocious_bite		= self.spells:recentlyCast(116)
+	var.recent.shred				= self.spells:recentlyCast(5221)
+	var.recent.swipe				= self.spells:recentlyCast(106785)
 	
-	var.multiplier = var.multiplier or {}
-	var.multiplier.rip = var.multiplier.rip or 1
-	var.multiplier.rake = var.multiplier.rake or 1
-	var.multiplier.thrash = var.multiplier.thrash or 1
+	var.new_multiplier_rip			= ( var.buff.tigers_fury.up and 1.15 or 1 ) * ( var.buff.bloodtalons.up and 1.25 or 1 )
+	var.new_multiplier_thrash 		= var.new_multiplier_rip
+	var.new_multiplier_rake 		= var.new_multiplier_rip * ( var.buff.prowl.up and 2 or 1 )
 	
-	local cast_rip, time_rip, cast_rake, time_rake, cast_thrash, time_thrash
-	cast_rip, time_rip = self.spells:recentlyCast(1079)
-	cast_rake, time_rake = self.spells:recentlyCast(1822)
-	cast_thrash, time_thrash = self.spells:recentlyCast(106830)
+	var.multiplier 					= var.multiplier or {}
+	var.multiplier.rip 				= var.multiplier.rip or 1
+	var.multiplier.rake 			= var.multiplier.rake or 1
+	var.multiplier.thrash 			= var.multiplier.thrash or 1
 	
-	if cast_rake then 
-		var.multiplier.rake = self.spells:auraUp(5217, time_rake) and 1.15 or 1
-		var.multiplier.rake = var.multiplier.rake * (self:doesSpellRemoveAura(1822, 145152) and 1.25 or 1)
-		var.multiplier.rake = var.multiplier.rake * (self:doesSpellRemoveAura(1822, 5215) and 2 or 1)
+	if var.recent.rake.cast then 
+		var.multiplier.rake 		= self.spells:auraUp(5217, var.recent.rake.time) and 1.15 or 1
+		var.multiplier.rake 		= var.multiplier.rake * (self:doesSpellRemoveAura(1822, 145152) and 1.25 or 1)
+		var.multiplier.rake 		= var.multiplier.rake * (self:doesSpellRemoveAura(1822, 5215) and 2 or 1)
 	end
-	if cast_rip then 
-		var.multiplier.rip = self.spells:auraUp(5217, time_rip) and 1.15 or 1
-		var.multiplier.rip = var.multiplier.rip * (self:doesSpellRemoveAura(1079, 145152) and 1.25 or 1)
+	if var.recent.rip.cast then 
+		var.multiplier.rip 			= self.spells:auraUp(5217, var.recent.rip.time) and 1.15 or 1
+		var.multiplier.rip 			= var.multiplier.rip * (self:doesSpellRemoveAura(1079, 145152) and 1.25 or 1)
 	end
-	if cast_thrash then 
-		var.multiplier.thrash = self.spells:auraUp(5217, time_thrash) and 1.15 or 1
-		var.multiplier.thrash = var.multiplier.thrash * (self:doesSpellRemoveAura(106830, 145152) and 1.25 or 1)
+	if var.recent.thrash.cast then 
+		var.multiplier.thrash 		= self.spells:auraUp(5217, var.recent.thrash.time) and 1.15 or 1
+		var.multiplier.thrash 		= var.multiplier.thrash * (self:doesSpellRemoveAura(106830, 145152) and 1.25 or 1)
 	end
 	
-	var.multiplier.rip = var.dot.rip.up and var.multiplier.rip or 0
-	var.multiplier.rake = var.dot.rake.up and var.multiplier.rake or 0
-	var.multiplier.thrash = var.dot.thrash.up and var.multiplier.thrash or 0
-	--print(prowl_rake)
+	var.multiplier.rip 				= var.dot.rip.up and var.multiplier.rip or 0
+	var.multiplier.rake 			= var.dot.rake.up and var.multiplier.rake or 0
+	var.multiplier.thrash 			= var.dot.thrash.up and var.multiplier.thrash or 0
+	
 	--printTable(var.multiplier)
 	
 end
 
 -- nextSpell() will be called on every frame (with timing), by system event
 function DruidFeral:nextSpell()	
-
-	-- Turn cleave on/off based on the spells used
-	local shredCast, shredTime = self.spells:recentlyCast(5221)
-	if shredCast and self.variables.targets > 1 and not self.variables.talent.brutal_slash then 
-		self.cleave:temporaryDisable(8, shredTime)
-	end 
-	local swipeCast, swipeTime = self.spells:recentlyCast(106785)
-	if swipeCast then 
-		self.cleave:temporaryDisable(0, swipeTime)
-	end 
 	
 	self:updateVariables()
 	self:updateAllActions()
 	
-	local main = self:runActionList(self.actions.main)
-	local finishers = self:runActionList(self.actions.finishers)
-	local generators = self:runActionList(self.actions.generators)
-	local cooldowns = self:runActionList(self.actions.cooldowns)
+	local var = self.variables
+	
+	local main 			= self:runActionList(self.actions.main)
+	local finishers 	= self:runActionList(self.actions.finishers)
+	local generators 	= self:runActionList(self.actions.generators)
+	local cooldowns 	= self:runActionList(self.actions.cooldowns)
+	
 	local spell = main or 
-				  ((self.variables.cp == 5) and not self.variables.disable_finisher) and finishers 
+				  ((var.cp == 5) and not var.disable_finisher) and finishers 
 				  or generators
 	
 	--printTable(self.actions.cooldowns)
 	self:updateIcon(_, spell)	-- '_' for main icon
-	self:updateIcon(self.icon_cooldown, cooldowns)
+	if cooldowns == 165572 then 	-- 165572 is the itemId of VIGOR, 133870 is the texture 
+		self:updateIcon(self.icon_cooldown, _, _, 133870)
+	else
+		self:updateIcon(self.icon_cooldown, cooldowns)
+	end
 	
-	--print(self.variables.cooldown.tigers_fury.up and spell == generators )
-	if self.variables.talent.predator and spell and
-		((self.variables.targets_low_health > 0) or (self.variables.ttk < 6 and self.variables.ttk > 0 ))
-		and self.variables.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) then 
+	--print(var.cooldown.tigers_fury.up and spell == generators )
+	if spell and ( var.talent.predator and
+		((var.targets_low_health > 0) or (var.ttk < 6 and var.ttk > 0 )) and 
+		var.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) or 
+		cooldowns == 5217 ) then 
 		self:updateIcon(self.icon_tigers_fury_small, 5217)
 	else 
 		self:updateIcon(self.icon_tigers_fury_small, nil)
 	end
 	
-	local str = ""
-	if SR_DEBUG > 0 then 
-		str = tostring(self.cleave:targets()).." "..tostring(self.cleave:targetsAggro())
-	end
-	self.text:SetText(str)
+	-- Turn cleave on/off based on the spells used
+	if ( var.recent.shred.cast or var.recent.ferocious_bite.cast ) and
+		self.cleave:targets(true) > 1 and not var.talent.brutal_slash then 
+		self.cleave:temporaryDisable(8, math.max(var.recent.shred.time, var.recent.ferocious_bite.time))
+	end 
+	if var.recent.swipe.cast or var.recent.primal_wrath.cast then 
+		self.cleave:temporaryDisable(0, math.max(var.recent.swipe.time, var.recent.primal_wrath.time))
+	end 
+	
 end

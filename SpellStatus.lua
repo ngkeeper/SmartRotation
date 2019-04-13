@@ -319,10 +319,6 @@ function SpellStatus: updateCd()
 	--self.cds: printMatrix()
 end
 
-function SpellStatus: updateTrace()
-	
-end
-
 function SpellStatus: isCasting(spell, uci)
 	-- the default option has ~300ms delay
 	-- this feature is to prevent the "gap"
@@ -340,7 +336,6 @@ function SpellStatus: isCasting(spell, uci)
 		return false 
 	end
 end
-
 
 function SpellStatus: isSpellReady(spell)
 	-- for some reason, IsUsableSpell(spell_id)
@@ -377,6 +372,16 @@ function SpellStatus: cooldown(spell)
 	cd.charge = self.cds: get("charge", spell)
 	cd.remain = self.cds: get("remain", spell)
 	cd.up = self.cds: get("up", spell)
+	return cd
+end
+
+function SpellStatus: itemCooldown(item)
+	local cd = {}
+	local startTime, duration = GetItemCooldown(item)
+	local endTime = startTime + duration
+	cd.up = duration < 1.5
+	cd.remain = math.max(0, endTime - GetTime())
+
 	return cd
 end
 
@@ -452,17 +457,18 @@ function SpellStatus: dotRemain(spell, unit)
 end
 
 function SpellStatus: recentlyCast(spell)
-	local cast = false
-	local timestamp = 0
+	local recent = {}
+	recent.cast = false
+	recent.time = 0
 	for i, v in ipairs(self.traced_spells) do
 		if v.spell_id == spell then 
 			if time() - v.timestamp < 2 then 
-				cast = true
-				timestamp = math.max(timestamp, v.timestamp)
+				recent.cast = true
+				recent.time = math.max(recent.time, v.timestamp)
 			end
 		end
 	end
-	return cast, timestamp
+	return recent
 end
 
 function SpellStatus: auraUp(aura, timestamp)
