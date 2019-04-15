@@ -22,6 +22,7 @@ function Specialization: _new(spells)
 	
 	self.variables = {}
 	self.icons = {}
+	self.texts = {}
 	self.actions = {}
 	self.talent = self.player:talent()
 	
@@ -31,14 +32,9 @@ function Specialization: _new(spells)
 	self.ui_ratio = 1
 	
 	self.icon = self:createIcon(nil, self.size, self.anchor_x, self.anchor_y)
-	self.text = self.icons[self.icon].UIFrame:CreateFontString(nil,"OVERLAY")
-	self.text:SetFont("Fonts\\FRIZQT__.ttf", 24, "THICKOUTLINE")
-	self.text:SetTextColor(1, 1, 1)
-	--self.text:SetAllPoints(self.icons[self.icon].UIFrame)
-	self.text:SetJustifyH("CENTER")
-	self.text:SetJustifyV("MIDDLE")
-	self.text:SetText("")
-
+	self.text = self:createText(self.icon, 16, 0, 40)
+	self.text2 = self:createText(self.icon, 16, 0, -40)
+	
 	self:refreshUI()
 end
 
@@ -80,7 +76,36 @@ function Specialization: getPosition()
 	return self.anchor_x, self.anchor_y
 end
 
-function Specialization: createIcon(texture, size, x, y, anchor, strata)
+function Specialization: createText(parentIcon, size, x, y)
+	local parent = UIParent
+	if parentIcon then parent = self.icons[parentIcon].UIFrame end
+	
+	local text = {}
+	text.x = x or 0
+	text.y = y or 0
+	text.size = size or 12
+	text.parent = parent
+	
+	text.UIText = parent:CreateFontString(nil,"OVERLAY")
+	text.UIText:SetFont("Fonts\\FRIZQT__.ttf", text.size, "OUTLINE")
+	text.UIText:SetTextColor(1, 1, 1)
+	text.UIText:SetJustifyH("CENTER")
+	text.UIText:SetJustifyV("MIDDLE")
+	text.UIText:SetText("")
+	
+	table.insert(self.texts, text)
+	
+	self:refreshUI()
+	return #self.texts
+end
+
+function Specialization: setText(text, message)
+	if self.texts[text] then 
+		self.texts[text].UIText:SetText(message)
+	end
+end
+
+function Specialization: createIcon(texture, size, x, y, anchor, strata, reverseCd)
 	if type(texture) == "number" then texture = GetSpellTexture(texture) end
 	
 	local icon = {}
@@ -102,8 +127,9 @@ function Specialization: createIcon(texture, size, x, y, anchor, strata)
 	icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
 	icon.UICd:SetAllPoints(icon.UIFrame)
 	icon.UICd:SetDrawEdge(false)
+	icon.UICd:SetReverse(reverseCd or false)
 	icon.UICd:SetSwipeColor(1, 1, 1, .85)
-	icon.UICd:SetHideCountdownNumbers(false)
+	icon.UICd:SetHideCountdownNumbers(reverseCd or false)
 	
 	table.insert(self.icons, icon)
 	
@@ -156,9 +182,9 @@ function Specialization: refreshUI()
 							self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
 		v.UIFrame: Show()
 	end
-	if self.text then 
-		self.text:SetPoint("CENTER", self.anchor_x + self.icons[self.icon].x * self.ui_ratio, 
-						   self.anchor_y + (self.icons[self.icon].y + 220) * self.ui_ratio)
+	for _, v in ipairs(self.texts) do
+		--print(v.parent)
+		v.UIText: SetPoint(	"CENTER", v.parent, "CENTER", v.x * self.ui_ratio, v.y * self.ui_ratio)
 	end
 end
 
@@ -167,13 +193,16 @@ function Specialization: update()
 	self.spells: update()
 	self.cleave: update()
 	
-	local str = ""
+	local str1 = ""
 	if SR_DEBUG > 0 then 
-		str = tostring(self.cleave:targets(true)).." "..
-			  tostring(self.cleave:targetsAggro()).." "..
+		str1 = tostring(self.cleave:targets(true)).." "..
 			  tostring(self.cleave:targetsLowHealth())
+		local ttk, dps = self.player:timeToKill()
+		ttk = math.min(99, ttk)
+		str2 = tostring(math.floor(ttk*10)/10)
 	end
-	self.text:SetText(str)
+	self:setText(self.text, str1)
+	self:setText(self.text2, str2)
 end
 
 function Specialization: updateCombat()		-- call on combat log event
@@ -185,6 +214,26 @@ end
 function Specialization: updateTalent()		-- call on talent change events
 	if not self.enabled then return nil end
 	self.talent = self.player:talent()
+end
+
+function Specialization: updateDotIcon(iconId, dotid, refreshable)
+	local present
+	for i = 1, 40 do
+		local ud_name, _, _, _, ud_duration, ud_expiration, _, _, _, ud_spell_id = UnitDebuff("target", i, "player")
+        if ud_spell_id == dotid then
+            self:iconCooldown(iconId, ud_expiration - ud_duration, ud_duration)
+			present = true
+        end
+    end
+	if refreshable and present then 
+		self.icons[iconId].UITexture:SetVertexColor(.5, 1, .5, 1)
+	end
+	if not present then 
+		self.icons[iconId].UITexture:SetDesaturated(1)
+		self:iconCooldown(iconId, 0, 0)
+	else 
+		self.icons[iconId].UITexture:SetDesaturated(nil)
+	end
 end
 
 function Specialization: updateIcon(iconId, spell, cdSpell, texture)
@@ -229,8 +278,7 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 		if duration > 1.5 then 
 			self:iconCooldown(iconId or self.icon, start, duration)
 		end
-	end
-	
+	end	
 	-- if DEBUG > 0 then 
 		-- local time_to_kill = math.ceil(self.spells: timeToKill())
 		-- --self.text:SetText(time_to_kill > 0 and tostring(time_to_kill) or "")
@@ -244,19 +292,25 @@ function Specialization: getRange(unit)
 	return range_min, range_max
 end
 
-function Specialization: doesSpellRemoveAura(spell, aura)
+function Specialization: doesSpellCastRemoveAura(spell_cast, aura)
 	local aura_timestamps = self.spells: auraRemoved(aura)
-	local recent = self.spells: recentlyCast(spell)
-	
-	if not recent.cast then 
+	if not spell_cast.cast then 
 		return nil
 	end
 	
-	local time_diff = recent.time
+	local time_diff
 	for i, v in ipairs(aura_timestamps) do 
-		time_diff = math.min(time_diff, math.abs(v - recent.time))
+		time_diff = math.min(time_diff or (v - spell_cast.time), math.abs(v - spell_cast.time))
 	end
-	return ( time_diff <= .5 ) 
+	
+	--if spell == 1822 and aura == 5215 then 
+		--printTable(aura_timestamps)
+		--print(time_diff)
+	--end
+	
+	if not time_diff then return nil end
+	
+	return ( time_diff < .5 ) and ( time_diff > -0.2 )
 end
 
 function Specialization: newActionList(actions)
@@ -324,8 +378,8 @@ function Specialization: updateAction(action, conditions, override, enabled)
 	end
 	if type(conditions) == "table" then
 		all_conditions_met = true
-		for i, v in ipairs(conditions) do 
-			all_conditions_met = all_conditions_met and v
+		for i = 1, #conditions do 
+			all_conditions_met = all_conditions_met and conditions[i]
 		end
 	end
 	action.condition = all_conditions_met

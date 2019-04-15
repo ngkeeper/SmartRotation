@@ -13,12 +13,12 @@ function Player: _new()
 	self.azerite = self:getAzeriteInfo()
 	local _, ilevel = GetAverageItemLevel()
 	-- for time-to-kill estimation, use lower dps if not sure
-	self.one_man_dps = 400 * math.exp(0.01 * ilevel) * 0.7 -- f(...) is from simc estimation, 0.7 is an estimation factor
-
+	self.one_man_dps = 400 * math.exp(0.01 * ilevel) * 0.8 -- f(...) is from simc estimation, 0.7 is an estimation factor
+	self.team_dps = self.one_man_dps
 end
 
 function Player: dps()
-	return self.one_man_dps
+	return self.one_man_dps, self.team_dps
 end
 
 function Player: talent(tier)
@@ -113,9 +113,11 @@ function Player: timeToKill(unit)
 	end
 	n_dps = math.max(1, n_dps)
 	--print(n_dps)
-	self.time_to_kill = hp_target / (self.one_man_dps * n_dps)
+	
+	self.team_dps = self.one_man_dps * n_dps;
+	self.time_to_kill = hp_target / self.team_dps
 	-- if self.predict_buff and self.predict_cd and self.predict_dot then 
 		-- self.time_to_kill = math.max(0, self.time_to_kill - self.next_spell_time)
 	-- end
-	return self.time_to_kill, n_dps
+	return self.time_to_kill, self.team_dps, n_dps
 end

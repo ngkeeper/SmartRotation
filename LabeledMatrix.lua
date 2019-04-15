@@ -146,3 +146,15 @@ function LabeledMatrix: get(row_label, column_label)
 	end
 end
 
+function LabeledMatrix: rowOr(row_label)
+	local value
+	local row = 0 
+	for i, v in ipairs(self.row_labels) do
+		if v == row_label then row = i end
+	end
+	if row == 0 then return nil end
+	for i, _ in ipairs(self.column_labels) do 
+		value = value or self.data[row][i]
+	end
+	return value
+end

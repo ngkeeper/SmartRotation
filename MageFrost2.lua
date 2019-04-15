@@ -9,6 +9,7 @@ setmetatable(MageFrost2, {
     return self
   end,
 })
+
 function MageFrost2:_new()
 	-- all mage spells (from wowhead)
 	-- 84714	frozen orb
@@ -194,16 +195,16 @@ function MageFrost2:updateVariables()
 	var.debuff.winters_chill 	= self.spells:dot(228358) 
 	
 	var.recent = var.recent or {}
-	var.recent.ice_lance		= self.spells:recentlyCast(30455)
-	var.recent.flurry 			= self.spells:recentlyCast(44614)
-	var.recent.frozen_orb 		= self.spells:recentlyCast(84714)
-	var.recent.ebonbolt 		= self.spells:recentlyCast(257537)
-	var.recent.frostbolt 		= self.spells:recentlyCast(116)
-	var.recent.glacial_spike 	= self.spells:recentlyCast(199786)
-	var.recent.comet_storm 		= self.spells:recentlyCast(153595)
-	var.recent.freeze 			= self.spells:recentlyCast(33395)
+	var.recent.ice_lance		= self.spells:recentCast(30455)
+	var.recent.flurry 			= self.spells:recentCast(44614)
+	var.recent.frozen_orb 		= self.spells:recentCast(84714)
+	var.recent.ebonbolt 		= self.spells:recentCast(257537)
+	var.recent.frostbolt 		= self.spells:recentCast(116)
+	var.recent.glacial_spike 	= self.spells:recentCast(199786)
+	var.recent.comet_storm 		= self.spells:recentCast(153595)
+	var.recent.freeze 			= self.spells:recentCast(33395)
 	
-	
+	--printTable(var.recent)
 	--------------------------------
 	-- Frost Mage specific variables
 	
@@ -240,7 +241,8 @@ function MageFrost2: updateAllActions()
 	local act = self.actions
 	
 	-- main / pre-combat action list
-	self:updateAction(act.main.ice_lance, 	  {	var.casting.flurry or var.recent.flurry.cast, 
+	--print(var.casting.flurry or var.recent.flurry.cast)
+	self:updateAction(act.main.ice_lance, 	{	var.casting.flurry or var.recent.flurry.cast, 
 												not var.recent.ice_lance.cast, not var.buff.fingers_of_frost.up})
 	
 	self:updateAction(act.cooldowns.icy_veins)
@@ -290,6 +292,7 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.single.glacial_spike, _, var.gs_condition)	-- 3rd parameter for override
 	self:updateAction(act.single.frostbolt)
 	
+	--print(act.freeze.pet_freeze.triggered, act.freeze.pet_freeze.triggered)
 	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, var.targets > 1 or not var.buff.brain_freeze.up })
 	self:updateAction(act.freeze.pet_freeze2,  	var.recent.comet_storm.cast )
 	self:updateAction(act.freeze.frost_nova,  { var.casting.glacial_spike, var.distance <= 12, not var.recent.freeze.cast, 
@@ -316,6 +319,7 @@ function MageFrost2: nextSpell()
 	-- to detect if player can cast spells
 	local can_use_spells = self:runActionList(self.actions.misc)
 	
+	--print(main)
 	local spell = main or ( targets >= 4 ) and aoe or single
 	local short_cds = ( targets >= 4 ) and aoe_cds or single_cds
 	

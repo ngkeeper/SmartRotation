@@ -40,12 +40,14 @@ function SpellStatus: _new(spells)
 	self.buffs: addRow({"up", "stack", "expiration"})
 	self.buffs: addColumn(self.spells.buff)
 	
-	self.dots = LabeledMatrix()
-	self.dots: addRow({"up", "refreshable", "expiration"})
-	self.dots: addColumn(self.spells.dot)
+	self.dots = {}
+	
+	self.dots_target = LabeledMatrix()
+	self.dots_target: addRow({"up", "refreshable", "expiration", "multiplier"})
+	self.dots_target: addColumn(self.spells.dot)
 	
 	self.dots_focus = LabeledMatrix()
-	self.dots_focus: addRow({"up", "refreshable", "expiration"})
+	self.dots_focus: addRow({"up", "refreshable", "expiration", "multiplier"})
 	self.dots_focus: addColumn(self.spells.dot)
 	
 	self.cds = LabeledMatrix()
@@ -81,6 +83,7 @@ function SpellStatus: update()
 	self: updateBuff()
 	self: updateDot()
 	self: updateDot("focus")
+	self: updateAllDots()
 	self: updateCd()
 	self: updateCastingStatus()
 	self: updateNextSpellTime()
@@ -225,14 +228,67 @@ function SpellStatus: updateBuff()
 	--self.buffs: printMatrix()
 end
 
-function SpellStatus: updateDot(unit)
+function SpellStatus: updateAllDots()
+	for i = 1, 40 do
+		local unit = "nameplate"..i
+		if UnitExists(unit) then
+			if UnitCanAttack("player", unit) then 
+				local guid = UnitGUID(unit)
+				local slot
+				for i, v in ipairs(self.dots) do 
+					if v.guid == guid then slot = i end
+				end
+				
+				local dot_unit
+				if slot then 
+					dot_unit = self.dots[slot].dot
+				else
+					dot_unit = LabeledMatrix()
+					dot_unit: addRow({"up", "refreshable", "expiration", "multiplier"})
+					dot_unit: addColumn(self.spells.dot)
+				end
+				
+				self:updateDot(unit, dot_unit)
+				local dot_active = dot_unit:rowOr("up")
+				
+				if slot and not dot_active then 
+					self.dots[slot].active = false
+				end
+				if dot_active then 
+					if not slot then 
+						for i = 1, 40 do
+							if not self.dots[i] then 
+								slot = i
+								break
+							elseif not self.dots[i].active then 
+								slot = i
+								break
+							end
+						end
+					end
+					slot = slot or 1
+					self.dots[slot] = self.dots[slot] or {}
+					self.dots[slot].guid = guid
+					self.dots[slot].active = true
+					self.dots[slot].dot = dot_unit
+				end
+			end
+		end
+	end
+	
+	-- for i, v in ipairs(self.dots) do
+		-- if v.active then print(i, string.sub(v.guid, -2)) end
+	-- end
+end
+
+function SpellStatus: updateDot(unit, dot_handle)
 	local target = unit or "target"
-	local dots = self.dots
+	local dots = dot_handle or self.dots_target
 	if target == "focus" then
 		dots = self.dots_focus
 	end 
 	-- table objects are passed by reference
-	-- "dots" is a reference of either self.dots or self.dots_focus
+	-- "dots" is a reference of either self.dots_target or self.dots_focus
 	local gcd_start, gcd_duration = GetSpellCooldown(self.spells.gcd)
 	local gcd_remain = math.max(0, gcd_duration - GetTime() + gcd_start)
 	local prediction = self.predict_dot and self.next_spell_time or 0
@@ -261,7 +317,7 @@ function SpellStatus: updateDot(unit)
             end
         end
     end
-	--print(self.dots: get("up", 589))
+	--print(self.dots_target: get("up", 589))
 	--print(self.dots_focus: get("up", 589))
 end
 
@@ -349,7 +405,7 @@ function SpellStatus: isSpellReady(spell)
 	
 	local cd_ready
 	local is_cd_spell = self.cds: searchColumn(spell_label)
-	local is_dot_spell = self.dots: searchColumn(spell_label)
+	local is_dot_spell = self.dots_target: searchColumn(spell_label)
 	if not is_cd_spell then 
 		cd_ready = true 
 	else
@@ -413,6 +469,25 @@ function SpellStatus: buffRemain(spell)
 	return self.buffs: get("expiration", spell)
 end
 
+function SpellStatus: getDotHandle(unit)
+	if not unit then return nil end -- self.dots end
+	local guid = UnitGUID(unit)
+	for i, v in ipairs(self.dots) do
+		if v.guid == guid then 
+			return v.dot
+		end
+	end
+end
+
+function SpellStatus: getDotHandleByGuid(guid)
+	if not guid then return nil end --self.dots end
+	for i, v in ipairs(self.dots) do
+		if v.guid == guid then 
+			return v.dot
+		end
+	end
+end
+
 function SpellStatus: dot(spell, duration, unit)
 	local d = {}
 	d.up = self:dotUp(spell, unit)
@@ -423,15 +498,19 @@ end
 
 function SpellStatus: dotUp(spell, unit)
 	unit = unit or "target"
-	local dots = self.dots
+	local dots = self:getDotHandle(unit)
+	if unit == "target" then dots = self.dots_target end
 	if unit == "focus" then dots = self.dots_focus end
+	if not dots then return nil end
 	return dots: get("up", spell)
 end
 
 function SpellStatus: dotRefreshable(spell, unit, duration)
 	unit = unit or "target"
-	local dots = self.dots
+	local dots = self:getDotHandle(unit)
+	if unit == "target" then dots = self.dots_target end
 	if unit == "focus" then dots = self.dots_focus end
+	if not dots then return nil end
 	-- 'duration' is optional 
 	-- if duration is not given, it will default as the full duration of the current dot 
 	-- however, if the current dot is already 130% elongated, the refreshable state estimate will be not accurate
@@ -451,24 +530,37 @@ end
 
 function SpellStatus: dotRemain(spell, unit)
 	unit = unit or "target"
-	local dots = self.dots
+	local dots = self:getDotHandle(unit)
+	if unit == "target" then dots = self.dots_target end
 	if unit == "focus" then dots = self.dots_focus end
+	if not dots then return 0 end
 	return dots: get("expiration", spell)
 end
 
-function SpellStatus: recentlyCast(spell)
-	local recent = {}
-	recent.cast = false
-	recent.time = 0
+function SpellStatus: recentCast(spell)
+	local recent_casts = {}
+	
 	for i, v in ipairs(self.traced_spells) do
 		if v.spell_id == spell then 
-			if time() - v.timestamp < 2 then 
-				recent.cast = true
-				recent.time = math.max(recent.time, v.timestamp)
+			local cast = {}
+			if time() - v.timestamp <= 2 then 
+				cast.cast = true
+				cast.time = v.timestamp
+				cast.dest_guid = v.destination
+				table.insert(recent_casts, cast)
 			end
 		end
 	end
-	return recent
+	local latest_cast = {}
+	latest_cast.cast = false
+	local t_max = 0
+	for i, v in ipairs(recent_casts) do
+		if v.time > t_max then 
+			latest_cast = v
+			t_max = v.time
+		end
+	end
+	return latest_cast, recent_casts
 end
 
 function SpellStatus: auraUp(aura, timestamp)

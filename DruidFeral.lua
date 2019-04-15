@@ -109,7 +109,20 @@ function DruidFeral:_new()
 	
 	self.icon_cooldown 			= self:createIcon(106951, 40, -50, 0)
 	self.icon_tigers_fury_small = self:createIcon(5217, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
+	
+	self.icon_rip = self:createIcon(1079, 35, -45, 110, _, _, true)
+	self.icon_rake = self:createIcon(1822, 35, 0, 110, _, _, true)
+	self.icon_thrash = self:createIcon(106830, 35, 45, 110, _, _, true)
 
+	self.text_rip = self:createText(self.icon_rip, 12, 0, -27)
+	self.text_rake = self:createText(self.icon_rake, 12, 0, -27)
+	self.text_thrash = self:createText(self.icon_thrash, 12, 0, -27)
+end
+
+-- Feral Druid nees a special module to track dot multipliers
+function DruidFeral:update()
+	Specialization: update()
+	self: updateDotMultipliers()
 end
 
 function DruidFeral:createActions()
@@ -181,7 +194,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.cooldowns.berserk, 		  {	var.energy > 30, 
 														var.cooldown.tigers_fury.remain > 5 or var.buff.tigers_fury.up})
 	self:updateAction(act.cooldowns.tigers_fury, 		var.energy_max - var.energy > ( var.buff.tigers_fury.up and 60 or 50 ) )
-	self:updateAction(act.cooldowns.vigor, _,		    var.buff.vigor_engaged.stack == 6 and var.cooldown.vigor.up )
+	self:updateAction(act.cooldowns.vigor, _,		    var.buff.vigor_engaged.stack == 6 and var.cooldown.vigor.up and var.ttk > 0 )
 	self:updateAction(act.cooldowns.feral_frenzy, 		var.cp == 0)
 	self:updateAction(act.cooldowns.incarnation, 	  {	var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up})
 	self:updateAction(act.cooldowns.shadowmeld, 	  {	var.cp < 5, var.energy >= 35, var.multiplier.rip < 2.1, 
@@ -189,21 +202,27 @@ function DruidFeral:updateAllActions()
 														(var.buff.bloodtalons.up or not var.talent.bloodtalons), 
 														(not var.talent.incarnation or var.cooldown.incarnation.remain > 18), 
 														not var.buff.incarnation.up })
-	
+
+													
 	-- finishers action list
 	self:updateAction(act.finishers.savage_roar, 		not var.buff.savage_roar.up)
-	self:updateAction(act.finishers.primal_wrath, 	  {	var.targets > 1, var.dot.rip.remain < 4})
-	self:updateAction(act.finishers.primal_wrath2, 	  {	var.targets > 1, var.talent.bloodtalons})
-	self:updateAction(act.finishers.rip, 			  {	not var.dot.rip.up, var.ttk > 8})
-	self:updateAction(act.finishers.rip2, 			  {	var.dot.rip.refreshable, not var.talent.sabertooth, var.ttk > 8})
-	self:updateAction(act.finishers.rip3, 			  {	var.dot.rip.remain < 20, var.new_multiplier_rip > var.multiplier.rip, 
+	self:updateAction(act.finishers.primal_wrath, 	  {	var.targets > 2 or var.targets_high_health > 1, var.dot.rip.remain < 4})
+	self:updateAction(act.finishers.primal_wrath2, 	  {	var.targets > 4, var.talent.bloodtalons})
+	self:updateAction(act.finishers.rip, 			  {	not var.dot.rip.up, var.ttk > 8,  
+														(var.targets_high_health <= 1) or not var.talent.primal_wrath })
+	self:updateAction(act.finishers.rip2, 			  {	var.dot.rip.refreshable, var.ttk > 8, 
+														(var.targets_high_health <= 1) or not var.talent.primal_wrath, 
+														not var.talent.sabertooth })
+	self:updateAction(act.finishers.rip3, 			  {	var.talent.sabertooth, var.dot.rip.remain < 20 or var.buff.tigers_fury.up, 
+														(var.targets_high_health <= 1) or not var.talent.primal_wrath, 
+														var.new_multiplier_rip > var.multiplier.rip, 
 														var.buff.bloodtalons.up, var.ttk > 8})
 	self:updateAction(act.finishers.savage_roar2, 		var.buff.savage_roar.remain < 12)
 	self:updateAction(act.finishers.maim, 				var.buff.iron_jaws.up)
 	self:updateAction(act.finishers.ferocious_bite)
 	
 	-- keep swiping for aoe, even at 5 cp
-	if var.targets > 1 and var.cp == 5 and 
+	if var.targets > 4 and var.cp == 5 and 
 		var.talent.moment_of_clarity and var.azerite.wild_fleshrending and 
 		not act.finishers.primal_wrath.triggered and not act.finishers.primal_wrath2.triggered then 
 		var.disable_finisher = true	
@@ -218,7 +237,8 @@ function DruidFeral:updateAllActions()
 														not var.buff.bloodtalons.up, var.talent.lunar_inspiration, 
 														var.dot.rake.remain < 1})
 	self:updateAction(act.generators.brutal_slash, 		var.targets > 2)
-	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable, not var.buff.bloodtalons.up, var.targets > 2})
+	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable, var.targets > 2, 
+														not var.buff.scent_of_blood.up or not var.dot.thrash.up})
 	self:updateAction(act.generators.thrash_cat2, 	  {	var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
 														not var.buff.scent_of_blood.up or not var.dot.thrash.up, var.targets > 3})
 	self:updateAction(act.generators.swipe_cat, 	  {	not var.talent.brutal_slash, var.buff.scent_of_blood.up})
@@ -230,7 +250,7 @@ function DruidFeral:updateAllActions()
 														var.dot.rake.remain < 7, var.ttk > 6})
 	self:updateAction(act.generators.moonfire_cat, 	  {	var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
 														not var.buff.predatory_swiftness.up, var.cp < 5})
-	self:updateAction(act.generators.brutal_slash2,   {	var.buff.tigers_fury.up, var.targets <= 1})
+	self:updateAction(act.generators.brutal_slash2, 	var.buff.tigers_fury.up )
 	self:updateAction(act.generators.moonfire_cat2,   {	var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
 	self:updateAction(act.generators.thrash_cat3, 	  {	var.dot.thrash.refreshable, not var.buff.bloodtalons.up, 
 														((var.azerite.wild_fleshrending and 
@@ -251,9 +271,11 @@ function DruidFeral:updateVariables()
 	var.energy_max 	= self.player:powerMax(Enum.PowerType.Energy)
 	var.cp 			= self.player:power(Enum.PowerType.ComboPoints)
 	
-	self.cleave:setLowHealthThreshold(self.player:dps() * 3)
+	self.cleave:setLowHealthThreshold(select(2, self.player:dps()) * 4)
+	
 	var.targets = self.cleave:targets()
 	var.targets_low_health = select(5, self.cleave:targets())
+	var.targets_high_health = var.targets - var.targets_low_health
 	
 	var.ttk = self.player:timeToKill()
 	var.ttk_effective = var.ttk * math.min(2, 0.9 + (var.targets == 0 and 0.1 or 0) + var.targets / 10 )
@@ -271,6 +293,7 @@ function DruidFeral:updateVariables()
 	var.talent.incarnation 			= self.talent[5] == 3
 	var.talent.scent_of_blood 		= self.talent[6] == 1
 	var.talent.brutal_slash 		= self.talent[6] == 2
+	var.talent.primal_wrath 		= self.talent[6] == 3
 	var.talent.moment_of_clarity 	= self.talent[7] == 1
 	var.talent.bloodtalons 			= self.talent[7] == 2
 	
@@ -302,43 +325,120 @@ function DruidFeral:updateVariables()
 	var.dot.moonfire 				= self.spells:dot(164812, 16)
 	
 	var.recent = var.recent or {}
-	var.recent.rip					= self.spells:recentlyCast(1079)
-	var.recent.rake 				= self.spells:recentlyCast(1822)
-	var.recent.thrash	 			= self.spells:recentlyCast(106830)
-	var.recent.primal_wrath			= self.spells:recentlyCast(257537)
-	var.recent.ferocious_bite		= self.spells:recentlyCast(116)
-	var.recent.shred				= self.spells:recentlyCast(5221)
-	var.recent.swipe				= self.spells:recentlyCast(106785)
+	var.recent.rip					= self.spells:recentCast(1079)
+	var.recent.rake 				= self.spells:recentCast(1822)
+	var.recent.thrash	 			= self.spells:recentCast(106830)
+	var.recent.primal_wrath			= self.spells:recentCast(285381)
+	var.recent.shred				= self.spells:recentCast(5221)
+	var.recent.swipe				= self.spells:recentCast(106785)
 	
+	--------------------
+	-- The following is specific to Feral Druid
+	-- Detects the multipliers of the present dots
+	
+	-- "new" multiplier is the current multiplier (if applying a new dot)
+	-- not the multiplier on a present dot
 	var.new_multiplier_rip			= ( var.buff.tigers_fury.up and 1.15 or 1 ) * ( var.buff.bloodtalons.up and 1.25 or 1 )
 	var.new_multiplier_thrash 		= var.new_multiplier_rip
 	var.new_multiplier_rake 		= var.new_multiplier_rip * ( var.buff.prowl.up and 2 or 1 )
 	
 	var.multiplier 					= var.multiplier or {}
-	var.multiplier.rip 				= var.multiplier.rip or 1
-	var.multiplier.rake 			= var.multiplier.rake or 1
-	var.multiplier.thrash 			= var.multiplier.thrash or 1
 	
-	if var.recent.rake.cast then 
-		var.multiplier.rake 		= self.spells:auraUp(5217, var.recent.rake.time) and 1.15 or 1
-		var.multiplier.rake 		= var.multiplier.rake * (self:doesSpellRemoveAura(1822, 145152) and 1.25 or 1)
-		var.multiplier.rake 		= var.multiplier.rake * (self:doesSpellRemoveAura(1822, 5215) and 2 or 1)
-	end
-	if var.recent.rip.cast then 
-		var.multiplier.rip 			= self.spells:auraUp(5217, var.recent.rip.time) and 1.15 or 1
-		var.multiplier.rip 			= var.multiplier.rip * (self:doesSpellRemoveAura(1079, 145152) and 1.25 or 1)
-	end
-	if var.recent.thrash.cast then 
-		var.multiplier.thrash 		= self.spells:auraUp(5217, var.recent.thrash.time) and 1.15 or 1
-		var.multiplier.thrash 		= var.multiplier.thrash * (self:doesSpellRemoveAura(106830, 145152) and 1.25 or 1)
+	local dot_handle = self.spells:getDotHandle("target")
+	if dot_handle then 
+		var.multiplier.rip = dot_handle:get("multiplier", 1079) or 1
+		var.multiplier.rake = dot_handle:get("multiplier", 155722) or 1
+		var.multiplier.thrash = dot_handle:get("multiplier", 106830) or 1
 	end
 	
 	var.multiplier.rip 				= var.dot.rip.up and var.multiplier.rip or 0
 	var.multiplier.rake 			= var.dot.rake.up and var.multiplier.rake or 0
 	var.multiplier.thrash 			= var.dot.thrash.up and var.multiplier.thrash or 0
-	
+
 	--printTable(var.multiplier)
+end
+
+function DruidFeral:updateDotMultipliers()
+	local var = self.variables
+	if not var.recent then return nil end
 	
+	local _, recent_rake = self.spells:recentCast(1822)
+	for i, v in ipairs(recent_rake) do 
+		local dot_handle = self.spells:getDotHandleByGuid(v.dest_guid)
+		local multiplier
+		multiplier 		= self.spells:auraUp(5217, v.time) and 1.15 or 1
+		multiplier 		= multiplier * (self:doesSpellCastRemoveAura(v, 145152) and 1.25 or 1)
+		multiplier 		= multiplier * (self:doesSpellCastRemoveAura(v, 5215) and 2 or 1)
+		if dot_handle then 
+			dot_handle:update("multiplier", 155722, multiplier)
+		end
+	end
+	
+	local _, recent_rip = self.spells:recentCast(1079)
+	for i, v in ipairs(recent_rip) do 
+		local dot_handle = self.spells:getDotHandleByGuid(v.dest_guid)
+		local multiplier
+		multiplier 			= self.spells:auraUp(5217, v.time) and 1.15 or 1
+		multiplier 			= multiplier * (self:doesSpellCastRemoveAura(v, 145152) and 1.25 or 1)
+		if dot_handle then 
+			dot_handle:update("multiplier", 1079, multiplier)
+		end
+	end
+	
+	-- There should be a better way to deal with aoe-type dots
+	--
+	-- The current strategy is to track SPELL_CAST_SUCCESS logs to get targets
+	-- AOE spell doesn't have target info in SPELL_CAST_SUCCESS logs
+	-- (only one SPELL_CAST_SUCCESS per aoe cast)
+	-- Instead, SPELL_DAMAGE logs from the initial hit may contain target info
+	-- (multiple SPELL_DAMAGE per aoe cast)
+	--
+	-- Need to implement "recentAoeCast" in SpellStatus to solve this issue. 
+	-- For now, aoe-type dots will change multipliers for all nearby enemies
+	
+	local _, recent_primal_wrath = self.spells:recentCast(285381)
+	for i, v in ipairs(recent_primal_wrath) do 
+		local dot_handle = self.spells:getDotHandleByGuid(v.dest_guid)
+		local multiplier
+		multiplier 			= self.spells:auraUp(5217, v.time) and 1.15 or 1
+		multiplier 			= multiplier * (self:doesSpellCastRemoveAura(v, 145152) and 1.25 or 1)
+		
+		for i = 1, 40 do
+			local unit = "nameplate"..i
+			if UnitExists(unit) then
+				if UnitCanAttack("player", unit) then 
+					if IsItemInRange(32321, unit) then 
+						local dot_handle = self.spells:getDotHandleByGuid(UnitGUID(unit))
+						if dot_handle then 
+							dot_handle:update("multiplier", 1079, multiplier)
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	local _, recent_thrash = self.spells:recentCast(106830)
+	for i, v in ipairs(recent_thrash) do 
+		local dot_handle = self.spells:getDotHandleByGuid(v.dest_guid)
+		local multiplier
+		multiplier		= self.spells:auraUp(5217, v.time) and 1.15 or 1
+		multiplier 		= multiplier * (self:doesSpellCastRemoveAura(v, 145152) and 1.25 or 1)
+		
+		for i = 1, 40 do
+			local unit = "nameplate"..i
+			if UnitExists(unit) then
+				if UnitCanAttack("player", unit) then 
+					if IsItemInRange(32321, unit) then 
+						local dot_handle = self.spells:getDotHandleByGuid(UnitGUID(unit))
+						if dot_handle then 
+							dot_handle:update("multiplier", 106830, multiplier)
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 -- nextSpell() will be called on every frame (with timing), by system event
@@ -377,12 +477,34 @@ function DruidFeral:nextSpell()
 	end
 	
 	-- Turn cleave on/off based on the spells used
-	if ( var.recent.shred.cast or var.recent.ferocious_bite.cast ) and
+	if var.recent.shred.cast and
 		self.cleave:targets(true) > 1 and not var.talent.brutal_slash then 
-		self.cleave:temporaryDisable(8, math.max(var.recent.shred.time, var.recent.ferocious_bite.time))
+		self.cleave:temporaryDisable(8, var.recent.shred.time)
 	end 
 	if var.recent.swipe.cast or var.recent.primal_wrath.cast then 
-		self.cleave:temporaryDisable(0, math.max(var.recent.swipe.time, var.recent.primal_wrath.time))
+		self.cleave:temporaryDisable(0, math.max(var.recent.swipe.time or 0, var.recent.primal_wrath.time or 0))
 	end 
+	
+	if SR_DEBUG > 0 then 
+		self:updateIcon(self.icon_rip, _, _, GetSpellTexture(1079))
+		self:updateIcon(self.icon_rake, _, _, GetSpellTexture(1822))
+		self:updateIcon(self.icon_thrash, _, _, GetSpellTexture(106830))
+		
+		self:updateDotIcon(self.icon_rip, 1079, var.dot.rip.refreshable)
+		self:updateDotIcon(self.icon_rake, 155722, var.dot.rake.refreshable)
+		self:updateDotIcon(self.icon_thrash, 106830, var.dot.thrash.refreshable)
+		
+		self:setText(self.text_rip, tostring(math.floor(var.multiplier.rip * 100 + 0.5 )).."%")
+		self:setText(self.text_rake, tostring(math.floor(var.multiplier.rake * 100 + 0.5 )).."%")
+		self:setText(self.text_thrash, tostring(math.floor(var.multiplier.thrash * 100 + 0.5 )).."%")
+	else 
+		self:updateIcon(self.icon_rip, nil)
+		self:updateIcon(self.icon_rake, nil)
+		self:updateIcon(self.icon_thrash, nil)
+		
+		self:setText(self.text_rip, "")
+		self:setText(self.text_rake, "")
+		self:setText(self.text_thrash, "")
+	end
 	
 end
