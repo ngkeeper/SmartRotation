@@ -60,6 +60,7 @@ function MageFrost2:_new()
 						190357,		--"Blizzard"
 						--122, 		--"Frost Nova"
 						228598, 	--"Ice Lance"
+						228597, 	--"Frostbolt"
 						257538, 	--"Ebonbolt"
 						228600, 	--"Glacial Spike"
 						120,		--"Cone of Cold"
@@ -82,9 +83,11 @@ function MageFrost2:_new()
 	self.cleave:setTimeout(6)
 	
 	
-	self.icon_cooldown = self:createIcon(84714, 35, 50, 0)
-	self.icon_icy_veins = self:createIcon(12472, 35, -50, 0)
-	--self.icon_blizzard = self:createIcon(190356, 35, 50, 0)
+	self.icon_cooldown 	= self:createIcon(84714, 35, -60, 0)
+	self.icon_icy_veins = self:createIcon(12472, 35, -100, 0)
+	self.icon_blizzard 	= self:createIcon(190356, 35, 60, 0)
+	self.icon_icicles 	= self:createIcon(199786, 35, 100, 0)
+	self.text_icicles 	= self:createText(self.icon_icicles, 16, 1, -1)
 	
 	self.icon_freeze = self:createIcon(33395, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
 end
@@ -125,9 +128,10 @@ function MageFrost2:createActions()
 	act.single.flurry2 			= self:newAction(44614, act.single)
 	act.single.flurry3 			= self:newAction(44614, act.single)
 	act.single.blizzard 		= self:newAction(190356, act.single)
+	act.single.blizzard2 		= self:newAction(190356, act.single)
 	act.single.ice_lance 		= self:newAction(30455, act.single)
 	act.single.ebonbolt 		= self:newAction(257537, act.single)
-	act.single.blizzard2 		= self:newAction(190356, act.single)
+	act.single.blizzard3 		= self:newAction(190356, act.single)
 	act.single.glacial_spike 	= self:newAction(199786, act.single)
 	act.single.frostbolt 		= self:newAction(116, act.single)
 	
@@ -183,6 +187,7 @@ function MageFrost2:updateVariables()
 	var.cooldown.frozen_orb 	= self.spells:cooldown(84714)
 	var.cooldown.frost_nova 	= self.spells:cooldown(122)
 	var.cooldown.freeze 		= self.spells:cooldown(33395)
+	var.cooldown.comet_storm	= self.spells:cooldown(153595)
 	
 	var.buff = var.buff or {}
 	var.buff.icicles 			= self.spells:buff(205473)
@@ -218,6 +223,7 @@ function MageFrost2:updateVariables()
 	
 	-- If casting frost bolt, icicles will get one more stack
 	-- If casting glacial_spike, icicles will be lost
+	var.buff.icicles.stack_raw = var.buff.icicles.stack
 	var.buff.icicles.stack = math.min(5, var.buff.icicles.stack + (var.casting.frostbolt and 1 or 0) )
 	var.buff.icicles.stack = var.casting.glacial_spike and 0 or var.buff.icicles.stack
 	
@@ -254,7 +260,7 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.aoe_cds.ice_nova)
 	self:updateAction(act.aoe_cds.ray_of_frost)
 	
-	self:updateAction(act.aoe.blizzard)
+	self:updateAction(act.aoe.blizzard, _, _, false)
 	self:updateAction(act.aoe.flurry, 			( var.casting.ebonbolt or var.recent.ebonbolt.cast ) or 
 												var.buff.brain_freeze.up and 
 												(( var.casting.frostbolt or var.recent.frostbolt.cast ) and 
@@ -283,17 +289,19 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.single.flurry3, 	  {	var.recent.frostbolt.cast or var.casting.frostbolt, 
 												var.buff.brain_freeze.up, 
 												not var.talent.glacial_spike or var.buff.icicles.stack < 4 } )
-	self:updateAction(act.single.blizzard, 	  {	var.targets > 2 or var.targets > 1 and 
+	self:updateAction(act.single.blizzard, 	  	var.targets > 2, _, false )
+	self:updateAction(act.single.blizzard2,   {	var.targets > 1 and 
 												var.buff.freezing_rain.up and var.buff.fingers_of_frost.stack < 2 } )
 	self:updateAction(act.single.ice_lance, 	var.buff.fingers_of_frost.up)
 	self:updateAction(act.single.ebonbolt, 	  {	not var.talent.glacial_spike or var.buff.icicles.stack == 5, 
 												not var.buff.brain_freeze.up, var.ttk_effective > var.time_next_gs + var.gcd * 2 } )
-	self:updateAction(act.single.blizzard2,   {	var.targets > 1, var.buff.brain_freeze.up } )
+	self:updateAction(act.single.blizzard3,   {	var.targets > 1, var.buff.freezing_rain.up } )
 	self:updateAction(act.single.glacial_spike, _, var.gs_condition)	-- 3rd parameter for override
 	self:updateAction(act.single.frostbolt)
 	
 	--print(act.freeze.pet_freeze.triggered, act.freeze.pet_freeze.triggered)
-	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, var.targets > 1 or not var.buff.brain_freeze.up })
+	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, 
+												(var.targets > 1 and var.talent.splitting_ice) or not var.buff.brain_freeze.up })
 	self:updateAction(act.freeze.pet_freeze2,  	var.recent.comet_storm.cast )
 	self:updateAction(act.freeze.frost_nova,  { var.casting.glacial_spike, var.distance <= 12, not var.recent.freeze.cast, 
 												var.targets > 1 or not var.buff.brain_freeze.up } )
@@ -302,18 +310,19 @@ function MageFrost2: updateAllActions()
 end
 
 function MageFrost2: nextSpell()
+	local var = self.variables
 	
 	self:updateVariables()
 	self:updateAllActions()
 	
-	local targets 		= self.variables.targets
-	local main 			= self:runActionList(self.actions.main)
-	local cooldowns 	= self:runActionList(self.actions.cooldowns)
-	local aoe 			= self:runActionList(self.actions.aoe)
-	local aoe_cds 		= self:runActionList(self.actions.aoe_cds)
-	local single 		= self:runActionList(self.actions.single)
-	local single_cds 	= self:runActionList(self.actions.single_cds)
-	local freeze 		= self:runActionList(self.actions.freeze)
+	local targets 				= var.targets
+	local main 					= self:runActionList(self.actions.main)
+	local cooldowns 			= self:runActionList(self.actions.cooldowns)
+	local aoe 					= self:runActionList(self.actions.aoe)
+	local aoe_cds 				= self:runActionList(self.actions.aoe_cds)
+	local single, priority		= self:runActionList(self.actions.single)
+	local single_cds 			= self:runActionList(self.actions.single_cds)
+	local freeze 				= self:runActionList(self.actions.freeze)
 	
 	-- The "misc" action list consists an unconditional ice lance action
 	-- to detect if player can cast spells
@@ -323,18 +332,44 @@ function MageFrost2: nextSpell()
 	local spell = main or ( targets >= 4 ) and aoe or single
 	local short_cds = ( targets >= 4 ) and aoe_cds or single_cds
 	
+	local blizzard_usable = (self.actions.aoe.blizzard.usable or self.actions.single.blizzard.usable)
+							and targets > 2 and not main and priority > 3
+	
 	self:updateIcon(_, spell)
 	self:updateIcon(self.icon_cooldown, short_cds)
 	self:updateIcon(self.icon_freeze, freeze)
-	--self:updateIcon(self.icon_blizzard, 190356, 190356)
+	self:updateIcon(self.icon_blizzard, 190356, 190356)
+	self:updateIcon(self.icon_icicles, _, _, 135855)
 	
-	local hide_pet_icon = self.variables.pet_exists or self.variables.talent.lonely_winter
+	if not short_cds then 
+		if var.cooldown.comet_storm.remain < var.cooldown.frozen_orb.remain and var.talent.comet_storm then 
+			self:updateIcon(self.icon_cooldown, 153595, 153595)
+		else 
+			self:updateIcon(self.icon_cooldown, 84714, 84714)
+		end
+	end
+	
+	if blizzard_usable then 
+		self:iconGlow(self.icon_blizzard)
+	else
+		self:iconGlow(self.icon_blizzard, false)
+	end
+	
+	--self:iconColor(self.icon_icicles, 1, 1, 1, ( var.buff.icicles.stack_raw + 1 )/ 6 )
+	self:setText(self.text_icicles, tostring(var.buff.icicles.stack_raw))
+	if var.buff.icicles.stack == 5 then
+		self:iconDesaturate(self.icon_icicles, false)
+	else 
+		self:iconDesaturate(self.icon_icicles)
+	end
+	
+	local hide_pet_icon = var.pet_exists or var.talent.lonely_winter
 	
 	-- The icy veins icon is overridden. Hide if player can't cast.
 	if can_use_spells then 
 		if hide_pet_icon then 
 			self:updateIcon(self.icon_icy_veins, 12472, 12472)
-			self:iconHideGlow(self.icon_icy_veins)
+			self:iconGlow(self.icon_icy_veins, false)
 		else
 			self:updateIcon(self.icon_icy_veins, 31687, 31687)
 			self:iconGlow(self.icon_icy_veins)

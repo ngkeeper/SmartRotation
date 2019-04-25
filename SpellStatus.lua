@@ -537,6 +537,26 @@ function SpellStatus: dotRemain(spell, unit)
 	return dots: get("expiration", spell)
 end
 
+function SpellStatus: dotCount(spell, duration)
+	local count = {}
+	count.up = 0
+	count.refreshable = 0
+	for i, v in ipairs(self.dots) do
+		if v.active then 
+			local dot_up = v.dot: get("up", spell)
+			local dot_remain = v.dot: get("expiration", spell)
+			local dot_refreshable = false
+			if dot_up and dot_remain < (duration or 0) * 0.3 then 
+				dot_refreshable = true
+			end
+			count.up = count.up + (dot_up and 1 or 0)
+			count.refreshable = count.refreshable + (dot_refreshable and 1 or 0)
+		end
+	end
+	count.waste = count.up - count.refreshable
+	return count
+end
+
 function SpellStatus: recentCast(spell)
 	local recent_casts = {}
 	

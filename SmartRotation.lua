@@ -146,6 +146,7 @@ SlashCmdList.SRONOFF = function(msg)
 			if not args[2] then SR_DEBUG = math.max(0, 1 - SR_DEBUG) end 
 			if args[2] == "buff" then printTable(player.variables.buff) end
 			if args[2] == "dot" then printTable(player.variables.dot) end
+			if tonumber(args[2]) then SR_DEBUG = tonumber(args[2]) end 
 		end
 	end
 end

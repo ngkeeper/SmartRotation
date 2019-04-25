@@ -110,13 +110,16 @@ function DruidFeral:_new()
 	self.icon_cooldown 			= self:createIcon(106951, 40, -50, 0)
 	self.icon_tigers_fury_small = self:createIcon(5217, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
 	
-	self.icon_rip = self:createIcon(1079, 35, -45, 110, _, _, true)
-	self.icon_rake = self:createIcon(1822, 35, 0, 110, _, _, true)
-	self.icon_thrash = self:createIcon(106830, 35, 45, 110, _, _, true)
+	self.icon_rip 				= self:createIcon(1079, 35, -45, 110, _, _, true)
+	self.icon_rake 				= self:createIcon(1822, 35, 0, 110, _, _, true)
+	self.icon_thrash 			= self:createIcon(106830, 35, 45, 110, _, _, true)
 
-	self.text_rip = self:createText(self.icon_rip, 12, 0, -27)
-	self.text_rake = self:createText(self.icon_rake, 12, 0, -27)
-	self.text_thrash = self:createText(self.icon_thrash, 12, 0, -27)
+	self.text_rip 				= self:createText(self.icon_rip, 12, 0, -27)
+	self.text_rip_above 		= self:createText(self.icon_rip, 12, 0, 27)
+	self.text_rake 				= self:createText(self.icon_rake, 12, 0, -27)
+	self.text_rake_above 		= self:createText(self.icon_rake, 12, 0, 27)
+	self.text_thrash 			= self:createText(self.icon_thrash, 12, 0, -27)
+	self.text_thrash_above 		= self:createText(self.icon_thrash, 12, 0, 27)
 end
 
 -- Feral Druid nees a special module to track dot multipliers
@@ -206,7 +209,9 @@ function DruidFeral:updateAllActions()
 													
 	-- finishers action list
 	self:updateAction(act.finishers.savage_roar, 		not var.buff.savage_roar.up)
-	self:updateAction(act.finishers.primal_wrath, 	  {	var.targets > 2 or var.targets_high_health > 1, var.dot.rip.remain < 4})
+	self:updateAction(act.finishers.primal_wrath, 	  {	var.targets > 2 or var.targets_high_health > 1, 
+														var.dot.rip.remain < 4 or 
+														(var.targets - var.count.primal_wrath.waste >= math.max(2, var.targets * 0.4)) })
 	self:updateAction(act.finishers.primal_wrath2, 	  {	var.targets > 4, var.talent.bloodtalons})
 	self:updateAction(act.finishers.rip, 			  {	not var.dot.rip.up, var.ttk > 8,  
 														(var.targets_high_health <= 1) or not var.talent.primal_wrath })
@@ -237,7 +242,9 @@ function DruidFeral:updateAllActions()
 														not var.buff.bloodtalons.up, var.talent.lunar_inspiration, 
 														var.dot.rake.remain < 1})
 	self:updateAction(act.generators.brutal_slash, 		var.targets > 2)
-	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable, var.targets > 2, 
+	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable or 
+														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)), 
+														var.targets > 2, 
 														not var.buff.scent_of_blood.up or not var.dot.thrash.up})
 	self:updateAction(act.generators.thrash_cat2, 	  {	var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
 														not var.buff.scent_of_blood.up or not var.dot.thrash.up, var.targets > 3})
@@ -252,10 +259,12 @@ function DruidFeral:updateAllActions()
 														not var.buff.predatory_swiftness.up, var.cp < 5})
 	self:updateAction(act.generators.brutal_slash2, 	var.buff.tigers_fury.up )
 	self:updateAction(act.generators.moonfire_cat2,   {	var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
-	self:updateAction(act.generators.thrash_cat3, 	  {	var.dot.thrash.refreshable, not var.buff.bloodtalons.up, 
+	self:updateAction(act.generators.thrash_cat3, 	  {	var.dot.thrash.refreshable or 
+														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)), 
+														not var.buff.bloodtalons.up, 
 														((var.azerite.wild_fleshrending and 
 														(not var.buff.incarnation.up or var.azerite.wild_fleshrending)) or 
-														var.targets > 1)})
+														var.targets > 1) })
 	self:updateAction(act.generators.thrash_cat4, 	  {	var.dot.thrash.refreshable, not var.azerite.wild_fleshrending, 
 														var.buff.clearcasting.up, not var.buff.bloodtalons.up, 
 														(not var.buff.incarnation.up or var.azerite.wild_fleshrending)})
@@ -323,6 +332,11 @@ function DruidFeral:updateVariables()
 	var.dot.rake 					= self.spells:dot(155722, 15)
 	var.dot.thrash 					= self.spells:dot(106830, 15)
 	var.dot.moonfire 				= self.spells:dot(164812, 16)
+	
+	var.count = var.count or {}
+	var.count.rake 					= self.spells:dotCount(155722, 15)
+	var.count.thrash 				= self.spells:dotCount(106830, 15)
+	var.count.primal_wrath 			= self.spells:dotCount(1079, (var.cp + 1) * 2)
 	
 	var.recent = var.recent or {}
 	var.recent.rip					= self.spells:recentCast(1079)
@@ -467,7 +481,8 @@ function DruidFeral:nextSpell()
 	end
 	
 	--print(var.cooldown.tigers_fury.up and spell == generators )
-	if spell and ( var.talent.predator and
+	if spell and 
+		( var.talent.predator and 
 		((var.targets_low_health > 0) or (var.ttk < 6 and var.ttk > 0 )) and 
 		var.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) or 
 		cooldowns == 5217 ) then 
@@ -485,7 +500,7 @@ function DruidFeral:nextSpell()
 		self.cleave:temporaryDisable(0, math.max(var.recent.swipe.time or 0, var.recent.primal_wrath.time or 0))
 	end 
 	
-	if SR_DEBUG > 0 then 
+	if SR_DEBUG > 1 then 
 		self:updateIcon(self.icon_rip, _, _, GetSpellTexture(1079))
 		self:updateIcon(self.icon_rake, _, _, GetSpellTexture(1822))
 		self:updateIcon(self.icon_thrash, _, _, GetSpellTexture(106830))
@@ -497,6 +512,10 @@ function DruidFeral:nextSpell()
 		self:setText(self.text_rip, tostring(math.floor(var.multiplier.rip * 100 + 0.5 )).."%")
 		self:setText(self.text_rake, tostring(math.floor(var.multiplier.rake * 100 + 0.5 )).."%")
 		self:setText(self.text_thrash, tostring(math.floor(var.multiplier.thrash * 100 + 0.5 )).."%")
+		
+		self:setText(self.text_rip_above, tostring(var.count.primal_wrath.up).."("..tostring(var.count.primal_wrath.refreshable)..")")
+		self:setText(self.text_rake_above, tostring(var.count.rake.up).."("..tostring(var.count.rake.refreshable)..")")
+		self:setText(self.text_thrash_above, tostring(var.count.thrash.up).."("..tostring(var.count.thrash.refreshable)..")")
 	else 
 		self:updateIcon(self.icon_rip, nil)
 		self:updateIcon(self.icon_rake, nil)

@@ -119,10 +119,17 @@ function Specialization: createIcon(texture, size, x, y, anchor, strata, reverse
 	icon.UIFrame:SetFrameStrata(strata or "BACKGROUND")
 	icon.UIFrame:SetWidth(icon.size)
 	icon.UIFrame:SetHeight(icon.size)
+	icon.UIFrame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", 
+							   tile = false, 
+							   insets = { left = 0, right = 0, top = 0, bottom = 0 }})
+	icon.UIFrame:SetBackdropColor(0,0,0,1)
 	
 	icon.UITexture = icon.UIFrame:CreateTexture(nil,"MEDIUM")
-	if texture then icon.UITexture:SetTexture(icon.texture) end
-	icon.UITexture:SetAllPoints(icon.UIFrame)
+	if texture then icon.UITexture:SetTexture(icon.texture, true) end
+	icon.UITexture:ClearAllPoints()
+	icon.UITexture:SetPoint("TOPLEFT", icon.UIFrame, "TOPLEFT", 1, -1)
+	icon.UITexture:SetPoint("BOTTOMRIGHT", icon.UIFrame, "BOTTOMRIGHT", -1, 1)
+	icon.UITexture:SetTexCoord(.08, .92 , .08, .92)
 	
 	icon.UICd = CreateFrame("Cooldown", nil, icon.UIFrame, "CooldownFrameTemplate")
 	icon.UICd:SetAllPoints(icon.UIFrame)
@@ -130,6 +137,8 @@ function Specialization: createIcon(texture, size, x, y, anchor, strata, reverse
 	icon.UICd:SetReverse(reverseCd or false)
 	icon.UICd:SetSwipeColor(1, 1, 1, .85)
 	icon.UICd:SetHideCountdownNumbers(reverseCd or false)
+	
+	
 	
 	table.insert(self.icons, icon)
 	
@@ -149,12 +158,22 @@ function Specialization: iconCooldown(icon, start, duration)
 	self.icons[icon].UICd:SetCooldown(start, duration)
 end
 
-function Specialization: iconGlow(icon)
-	ActionButton_ShowOverlayGlow(self.icons[icon].UIFrame)
+function Specialization: iconGlow(icon, glow)
+	if type(glow) == "nil" then glow = true end
+	if glow then 
+		ActionButton_ShowOverlayGlow(self.icons[icon].UIFrame)
+	else 
+		ActionButton_HideOverlayGlow(self.icons[icon].UIFrame)
+	end
 end
 
-function Specialization: iconHideGlow(icon)
-	ActionButton_HideOverlayGlow(self.icons[icon].UIFrame)
+function Specialization: iconDesaturate(icon, desaturate)
+	if type(desaturate) == "nil" then desaturate = true end
+	if desaturate then 
+		self.icons[icon].UITexture:SetDesaturated(1)
+	else 
+		self.icons[icon].UITexture:SetDesaturated(nil)
+	end
 end
 
 function Specialization: iconColor(icon, r, g, b, alpha)
@@ -194,6 +213,7 @@ function Specialization: update()
 	self.cleave: update()
 	
 	local str1 = ""
+	local str2 = ""
 	if SR_DEBUG > 0 then 
 		str1 = tostring(self.cleave:targets(true)).." "..
 			  tostring(self.cleave:targetsLowHealth())
@@ -243,11 +263,12 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 	
 	local color = 0
 	if texture then 	
-		icon.UITexture: SetTexture(texture)
+		icon.UITexture: SetTexture(texture, true)
+		icon.UIFrame:SetBackdropColor(0,0,0,1)
 	else
 		if self.enabled and spell then 
-			icon.UITexture: SetTexture(GetSpellTexture(spell))
-			--icon.UIFrame: Show()
+			icon.UITexture: SetTexture(GetSpellTexture(spell), true)
+			icon.UIFrame:SetBackdropColor(0,0,0,1)
 			if UnitCanAttack("player", "target") then 
 				local spellname = select(1, GetSpellInfo(spell))
 				if spellname then 
@@ -255,7 +276,7 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 				end
 			end
 		else
-			--icon.UIFrame: Hide()
+			icon.UIFrame:SetBackdropColor(0,0,0,0)
 			icon.UITexture: SetTexture(nil)
 		end
 	end
@@ -264,7 +285,7 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 		--self.text:SetText("")
 		color = 2
 	end
-
+	
 	if color == 0 then 
 		icon.UITexture:SetVertexColor(1, 1, 1, 1)
 	elseif color == 1 then 
