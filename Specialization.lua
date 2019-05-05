@@ -262,13 +262,14 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 	spell = spell or self.next_spell
 	
 	local color = 0
+	local backdropColor = 0
 	if texture then 	
 		icon.UITexture: SetTexture(texture, true)
-		icon.UIFrame:SetBackdropColor(0,0,0,1)
+		backdropColor = 1
 	else
 		if self.enabled and spell then 
 			icon.UITexture: SetTexture(GetSpellTexture(spell), true)
-			icon.UIFrame:SetBackdropColor(0,0,0,1)
+			backdropColor = 1
 			if UnitCanAttack("player", "target") then 
 				local spellname = select(1, GetSpellInfo(spell))
 				if spellname then 
@@ -276,9 +277,12 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 				end
 			end
 		else
-			icon.UIFrame:SetBackdropColor(0,0,0,0)
 			icon.UITexture: SetTexture(nil)
 		end
+	end
+	
+	if (iconId == self.icon or not iconId) and self.cleave:disabled() then 
+		backdropColor = 2
 	end
 	
 	if self.next_spell_on_focus then 
@@ -294,12 +298,23 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 		icon.UITexture:SetVertexColor(1, 1, 0, 1)
 	end
 	
+	if backdropColor == 0 then 
+		icon.UIFrame:SetBackdropColor(0, 0, 0, 0)
+	elseif backdropColor == 1 then 
+		icon.UIFrame:SetBackdropColor(0, 0, 0, 1)
+	elseif backdropColor == 2 then 
+		icon.UIFrame:SetBackdropColor(1, 1, 0, 1)
+	end
+	
+	
 	if cdSpell and icon.UICd then 
 		local start, duration = GetSpellCooldown(cdSpell)
 		if duration > 1.5 then 
 			self:iconCooldown(iconId or self.icon, start, duration)
 		end
 	end	
+	
+	
 	-- if DEBUG > 0 then 
 		-- local time_to_kill = math.ceil(self.spells: timeToKill())
 		-- --self.text:SetText(time_to_kill > 0 and tostring(time_to_kill) or "")

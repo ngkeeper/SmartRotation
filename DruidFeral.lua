@@ -99,6 +99,7 @@ function DruidFeral:_new()
 					  }
 	spells.auras 	= { 145152, 	-- "Bloodtalons"
 						5215, 		-- "Prowl"
+						102543, 	-- "Incarnation: King of the Jungle"
 						5217, 		-- "Tiger's Fury"
 					  }
 
@@ -184,7 +185,7 @@ function DruidFeral:updateAllActions()
 	local act = self.actions
 	
 	-- main / pre-combat action list
-	self:updateAction(act.main.prowl, 					not var.buff.prowl.up)
+	self:updateAction(act.main.prowl, 				  {	not var.buff.prowl.up, not var.buff.incarnation.up } )
 	self:updateAction(act.main.cat_form, 				not var.buff.cat_form.up)
 	self:updateAction(act.main.rake, 				  {	var.buff.prowl.up or var.buff.shadowmeld.up, var.targets < 8 } )
 	self:updateAction(act.main.ferocious_bite, 		  {	not var.disable_finisher, var.cp >= 1, var.dot.rip.up, 
@@ -243,7 +244,8 @@ function DruidFeral:updateAllActions()
 														var.dot.rake.remain < 1})
 	self:updateAction(act.generators.brutal_slash, 		var.targets > 2)
 	self:updateAction(act.generators.thrash_cat, 	  {	var.dot.thrash.refreshable or 
-														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)), 
+														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)) and
+														not var.recent.thrash.cast, 
 														var.targets > 2, 
 														not var.buff.scent_of_blood.up or not var.dot.thrash.up})
 	self:updateAction(act.generators.thrash_cat2, 	  {	var.talent.scent_of_blood, not var.buff.bloodtalons.up, 
@@ -260,7 +262,8 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.generators.brutal_slash2, 	var.buff.tigers_fury.up )
 	self:updateAction(act.generators.moonfire_cat2,   {	var.talent.lunar_inspiration, var.dot.moonfire.refreshable})
 	self:updateAction(act.generators.thrash_cat3, 	  {	var.dot.thrash.refreshable or 
-														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)), 
+														(var.targets - var.count.thrash.waste >= math.max(1, var.targets * 0.4)) and 
+														not var.recent.thrash.cast, 
 														not var.buff.bloodtalons.up, 
 														((var.azerite.wild_fleshrending and 
 														(not var.buff.incarnation.up or var.azerite.wild_fleshrending)) or 
@@ -354,7 +357,9 @@ function DruidFeral:updateVariables()
 	-- not the multiplier on a present dot
 	var.new_multiplier_rip			= ( var.buff.tigers_fury.up and 1.15 or 1 ) * ( var.buff.bloodtalons.up and 1.25 or 1 )
 	var.new_multiplier_thrash 		= var.new_multiplier_rip
-	var.new_multiplier_rake 		= var.new_multiplier_rip * ( var.buff.prowl.up and 2 or 1 )
+	var.new_multiplier_rake 		= var.new_multiplier_rip * 
+									( ( var.buff.prowl.up or var.buff.incarnation.up) and 2 or 1 ) 
+									
 	
 	var.multiplier 					= var.multiplier or {}
 	
@@ -382,7 +387,7 @@ function DruidFeral:updateDotMultipliers()
 		local multiplier
 		multiplier 		= self.spells:auraUp(5217, v.time) and 1.15 or 1
 		multiplier 		= multiplier * (self:doesSpellCastRemoveAura(v, 145152) and 1.25 or 1)
-		multiplier 		= multiplier * (self:doesSpellCastRemoveAura(v, 5215) and 2 or 1)
+		multiplier 		= multiplier * ( (self:doesSpellCastRemoveAura(v, 5215) or self.spells:auraUp(102543, v.time)) and 2 or 1)
 		if dot_handle then 
 			dot_handle:update("multiplier", 155722, multiplier)
 		end
@@ -481,7 +486,7 @@ function DruidFeral:nextSpell()
 	end
 	
 	--print(var.cooldown.tigers_fury.up and spell == generators )
-	if spell and 
+	if spell and spell ~= 8936 and 
 		( var.talent.predator and 
 		((var.targets_low_health > 0) or (var.ttk < 6 and var.ttk > 0 )) and 
 		var.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) or 

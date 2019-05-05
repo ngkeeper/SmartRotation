@@ -127,6 +127,9 @@ function CleaveLog2: temporaryDisable(duration, flag)
 		self.temporary_disabled_flag = flag
 	end
 end
+function CleaveLog2: disabled()
+	return self.temporary_disabled
+end
 function CleaveLog2: scanNameplates()
 	local nearby = 0
 	local aggro = 0

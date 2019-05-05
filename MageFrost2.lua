@@ -2,7 +2,7 @@ MageFrost2 = {}
 MageFrost2.__index = MageFrost2
 
 setmetatable(MageFrost2, {
-  __index = Specialization, -- inherit from the PlayerRotation class
+  __index = Specialization, -- inherit from the Specialization class
   __call = function (class, ...)
     local self = setmetatable({}, class)
     self:_new(...)
@@ -267,6 +267,7 @@ function MageFrost2: updateAllActions()
 												( var.buff.icicles.stack < 4 or not var.talent.glacial_spike ) or 
 												( var.casting.glacial_spike or var.recent.glacial_spike.cast)) )
 	self:updateAction(act.aoe.flurry2,		  {	var.talent.glacial_spike, var.buff.brain_freeze.up, 
+												var.casting.glacial_spike or var.recent.glacial_spike.cast or
 												var.buff.brain_freeze.remain < var.time_next_gs } )
 	self:updateAction(act.aoe.ice_lance, 		var.buff.fingers_of_frost.up)
 	self:updateAction(act.aoe.ebonbolt,   	  {	not var.talent.glacial_spike or var.buff.icicles.stack == 5, 
@@ -285,6 +286,7 @@ function MageFrost2: updateAllActions()
 												not var.talent.glacial_spike or var.buff.icicles.stack < 4 or
 												var.buff.icicles.stack < 4  } ) --or var.buff.brain_freeze.up
 	self:updateAction(act.single.flurry2, 	  {	var.talent.glacial_spike, var.buff.brain_freeze.up, 
+												var.casting.glacial_spike or var.recent.glacial_spike.cast or
 												var.buff.brain_freeze.remain < var.time_next_gs } )
 	self:updateAction(act.single.flurry3, 	  {	var.recent.frostbolt.cast or var.casting.frostbolt, 
 												var.buff.brain_freeze.up, 
