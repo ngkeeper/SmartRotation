@@ -139,6 +139,7 @@ function DruidFeral:createActions()
 	act.main.rake 					= self:newAction(1822, act.main)
 	act.main.ferocious_bite 		= self:newAction(22568, act.main)
 	act.main.regrowth 				= self:newAction(8936, act.main)
+	act.main.rip 					= self:newAction(1079, act.main)
 	
 	act.cooldowns = {}
 	act.cooldowns.berserk 			= self:newAction(106951, act.cooldowns)
@@ -204,6 +205,8 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.cooldowns.tigers_fury, 	  { var.energy_max - var.energy > ( var.buff.tigers_fury.up and 60 or 50 ), 
 														not act.main.regrowth.triggered, 
 														not act.generators.regrowth.triggered, not act.generators.regrowth2.triggered })
+	self:updateAction(act.cooldowns.tigers_fury2, 	  {	var.buff.prowl.up or var.buff.shadowmeld.up, var.targets < 8, 
+														var.buff.bloodtalons.up, var.talent.sabertooth })
 	self:updateAction(act.cooldowns.vigor, _,		    var.buff.vigor_engaged.stack == 6 and var.cooldown.vigor.up and var.ttk > 0 )
 	self:updateAction(act.cooldowns.feral_frenzy, 		var.cp == 0)
 	self:updateAction(act.cooldowns.incarnation, 	  {	var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up })
@@ -272,7 +275,7 @@ function DruidFeral:updateAllActions()
 														var.dot.rake.remain < 7, var.ttk > 6 })
 	self:updateAction(act.generators.moonfire_cat, 	  {	var.talent.lunar_inspiration, var.buff.bloodtalons.up, 
 														not var.buff.predatory_swiftness.up, var.cp < 5 })
-	self:updateAction(act.generators.brutal_slash2, 	var.buff.tigers_fury.up or var.buff )
+	self:updateAction(act.generators.brutal_slash2, 	var.buff.tigers_fury.up or var.cooldown.brutal_slash.charge > 2 )
 	self:updateAction(act.generators.moonfire_cat2,   {	var.talent.lunar_inspiration, var.dot.moonfire.refreshable })
 	self:updateAction(act.generators.thrash_cat3, 	  {	thrash_condition, 
 														var.dot.thrash.refreshable or 
@@ -281,7 +284,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.generators.swipe_cat2, 	  {	not var.talent.brutal_slash, var.targets > 1} )
 	self:updateAction(act.generators.shred, 		  {	(var.dot.rake.remain > (65 - var.energy)) or var.buff.clearcasting.up, 
 														not var.talent.brutal_slash or 
-														not (var.targets > 1 and (var.brutal_slash.stack > 0 or
+														not (var.targets > 1 and (var.cooldown.brutal_slash.charge > 0 or
 														var.cooldown.brutal_slash.remain < 3)) or 
 														(( not var.talent.bloodtalons or not var.buff.bloodtalons.up ) or 
 														( not var.talent.moment_of_clarity or not var.buff.clearcasting.up )) })
@@ -323,6 +326,7 @@ function DruidFeral:updateVariables()
 	
 	var.cooldown = var.cooldown or {}
 	var.cooldown.tigers_fury 		= self.spells:cooldown(5217)
+	var.cooldown.brutal_slash 		= self.spells:cooldown(202028)
 	var.cooldown.berserk 			= self.spells:cooldown(106951)
 	var.cooldown.incarnation 		= self.spells:cooldown(102543)
 	var.cooldown.vigor				= self.spells:itemCooldown(165572)
@@ -500,10 +504,10 @@ function DruidFeral:nextSpell()
 	
 	--print(var.cooldown.tigers_fury.up and spell == generators )
 	if spell and spell ~= 8936 and 
-		( var.talent.predator and 
+		(( var.talent.predator and 
 		((var.targets_low_health > 0) or (var.ttk < 6 and var.ttk > 0 )) and 
 		var.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) or 
-		cooldowns == 5217 ) then 
+		cooldowns == 5217 ) or cooldowns == 5217) then 
 		self:updateIcon(self.icon_tigers_fury_small, 5217)
 	else 
 		self:updateIcon(self.icon_tigers_fury_small, nil)

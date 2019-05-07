@@ -209,7 +209,8 @@ function MageFrost2:updateVariables()
 	var.recent.comet_storm 		= self.spells:recentCast(153595)
 	var.recent.freeze 			= self.spells:recentCast(33395)
 	
-	--printTable(var.recent)
+	var.previous_cast 			= self.spells:recentCast()
+	
 	--------------------------------
 	-- Frost Mage specific variables
 	
@@ -230,7 +231,9 @@ function MageFrost2:updateVariables()
 	-- Time to the next glacial spike, to if the brain freeze lasts as long, 
 	local casttime_frostbolt 		= select(4, GetSpellInfo(116)) / 1000
 	local casttime_glacial_spike 	= select(4, GetSpellInfo(199786)) / 1000
-	var.time_next_gs = (5 - var.buff.icicles.stack) * casttime_frostbolt + casttime_glacial_spike
+	var.time_next_gs = (5 - (var.casting.glacial_spike and 5 or var.buff.icicles.stack) ) * casttime_frostbolt 
+						+ ( var.casting.glacial_spike and 0 or casttime_glacial_spike )
+						+ self.spells:timeNextSpell()
 	
 	-- Condition for glacial spike (GS)
 	-- GS is treated differently because GS is considered not usable with 4 icicles and casting a frostbolt
@@ -249,9 +252,8 @@ function MageFrost2: updateAllActions()
 	
 	-- main / pre-combat action list
 	--print(var.casting.flurry or var.recent.flurry.cast)
-	self:updateAction(act.main.ice_lance, 	  { var.casting.flurry or var.recent.flurry.cast, 
-												not var.buff.fingers_of_frost.up }) 
-												--not var.recent.ice_lance.cast 
+	self:updateAction(act.main.ice_lance, 	  { var.casting.flurry or var.previous_cast.spell_id == 44614, 
+												not var.buff.fingers_of_frost.up, var.previous_cast.spell_id ~= 30455 })
 	
 	self:updateAction(act.cooldowns.icy_veins)
 	self:updateAction(act.cooldowns.mirror_image)
@@ -263,13 +265,13 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.aoe_cds.ray_of_frost)
 	
 	self:updateAction(act.aoe.blizzard, _, _, false)
-	self:updateAction(act.aoe.flurry, 			( var.casting.ebonbolt or var.recent.ebonbolt.cast ) or 
+	self:updateAction(act.aoe.flurry, 			var.casting.ebonbolt or 
 												var.buff.brain_freeze.up and 
-												(( var.casting.frostbolt or var.recent.frostbolt.cast ) and 
+												( var.casting.frostbolt  and 
 												( var.buff.icicles.stack < 4 or not var.talent.glacial_spike ) or 
-												( var.casting.glacial_spike or var.recent.glacial_spike.cast)) )
+												var.casting.glacial_spike ) )
 	self:updateAction(act.aoe.flurry2,		  {	var.talent.glacial_spike, var.buff.brain_freeze.up, 
-												var.casting.glacial_spike or var.recent.glacial_spike.cast or
+												var.casting.glacial_spike or
 												var.buff.brain_freeze.remain < var.time_next_gs } )
 	self:updateAction(act.aoe.ice_lance, 		var.buff.fingers_of_frost.up)
 	self:updateAction(act.aoe.ebonbolt,   	  {	not var.talent.glacial_spike or var.buff.icicles.stack == 5, 
@@ -283,15 +285,12 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.single_cds.comet_storm)
 	self:updateAction(act.single_cds.ray_of_frost, { not var.recent.frozen_orb.cast, var.cooldown.frozen_orb.remain > 5 } )
 	self:updateAction(act.single_cds.ice_nova2)
-		
-	self:updateAction(act.single.flurry, 	  {	var.talent.ebonbolt, (var.recent.ebonbolt.cast or var.casting.ebonbolt), 
-												not var.talent.glacial_spike or var.buff.icicles.stack < 4 or
-												var.buff.icicles.stack < 4  } ) --or var.buff.brain_freeze.up
-	self:updateAction(act.single.flurry2, 	  {	var.talent.glacial_spike, var.buff.brain_freeze.up, 
-												var.casting.glacial_spike or var.recent.glacial_spike.cast or
-												var.buff.brain_freeze.remain < var.time_next_gs } )
-	self:updateAction(act.single.flurry3, 	  {	var.recent.frostbolt.cast or var.casting.frostbolt, 
-												var.buff.brain_freeze.up, 
+	
+	self:updateAction(act.single.flurry, 	  {	var.casting.ebonbolt, 
+												not var.talent.glacial_spike or var.buff.icicles.stack < 4 } )
+	self:updateAction(act.single.flurry2, 	  {	var.casting.glacial_spike, var.buff.brain_freeze.up, 
+												var.buff.brain_freeze.remain > var.time_next_gs } )
+	self:updateAction(act.single.flurry3, 	  {	var.casting.frostbolt, var.buff.brain_freeze.up, 
 												not var.talent.glacial_spike or var.buff.icicles.stack < 4 } )
 	self:updateAction(act.single.blizzard, 	  	var.targets > 2, _, false )
 	self:updateAction(act.single.blizzard2,   {	var.targets > 1 and 
@@ -301,9 +300,8 @@ function MageFrost2: updateAllActions()
 												not var.buff.brain_freeze.up, var.ttk_effective > var.time_next_gs + var.gcd * 2 } )
 	self:updateAction(act.single.blizzard3,   {	var.targets > 1, var.buff.freezing_rain.up } )
 	self:updateAction(act.single.glacial_spike, _, var.gs_condition)	-- 3rd parameter for override
-	self:updateAction(act.single.frostbolt)
+	self:updateAction(act.single.frostbolt, _, true)
 	
-	--print(act.freeze.pet_freeze.triggered, act.freeze.pet_freeze.triggered)
 	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, not var.recent.glacial_spike.cast,
 												(var.targets > 1 and var.talent.splitting_ice) or not var.buff.brain_freeze.up })
 	self:updateAction(act.freeze.pet_freeze2,  	var.recent.comet_storm.cast )

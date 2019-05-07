@@ -380,16 +380,19 @@ function SpellStatus: isCasting(spell, uci)
 	-- this feature is to prevent the "gap"
 	-- that exists between "end of cast" and "spell lands"
 	-- use 'uci' for no-delay cast prediction
-	if not uci then return (spell == self.casting.spell) end
-	
-	-- if 'uci' is defined
+
+	local uci_casting = false
 	local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo("player")
 	if uci_spell then 
 		local casting = uci_spell
 		if type(spell) == "number" then casting = uci_spell_id end
-		return ( spell == casting )
-	else 
-		return false 
+		uci_casting = ( spell == casting )
+	end
+	
+	if not uci then 
+		return (spell == self.casting.spell) or uci_casting 
+	else
+		return uci_casting
 	end
 end
 
@@ -561,10 +564,11 @@ function SpellStatus: recentCast(spell)
 	local recent_casts = {}
 	
 	for i, v in ipairs(self.traced_spells) do
-		if v.spell_id == spell then 
+		if v.spell_id == (spell or v.spell_id) then 
 			local cast = {}
 			if time() - v.timestamp <= 2 then 
 				cast.cast = true
+				cast.spell_id = v.spell_id
 				cast.time = v.timestamp
 				cast.dest_guid = v.destination
 				table.insert(recent_casts, cast)

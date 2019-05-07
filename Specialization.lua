@@ -399,9 +399,6 @@ function Specialization: updateAction(action, conditions, override, enabled)
 	
 	if action.spell then 
 		action.usable = self.spells:isSpellReady(action.spell)
-		if action.spell == "POOL" then 
-			action.usable = true
-		end
 	else
 		action.usable = true
 	end
