@@ -215,8 +215,8 @@ function Specialization: update()
 	local str1 = ""
 	local str2 = ""
 	if SR_DEBUG > 0 then 
-		str1 = tostring(self.cleave:targets(true)).." "..
-			  tostring(self.cleave:targetsLowHealth())
+		str1 = tostring(self.cleave:targets(true)) -- .." "..
+			   --tostring(self.cleave:targetsLowHealth())
 		local ttk, dps = self.player:timeToKill()
 		ttk = math.min(99, ttk)
 		str2 = tostring(math.floor(ttk*10)/10)
@@ -281,7 +281,8 @@ function Specialization: updateIcon(iconId, spell, cdSpell, texture)
 		end
 	end
 	
-	if (iconId == self.icon or not iconId) and self.cleave:disabled() then 
+	if (iconId == self.icon or not iconId) and self.cleave:disabled() 
+		and self.enabled and ( spell or texture ) then 
 		backdropColor = 2
 	end
 	

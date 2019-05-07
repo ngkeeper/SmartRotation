@@ -234,7 +234,8 @@ function MageFrost2:updateVariables()
 	
 	-- Condition for glacial spike (GS)
 	-- GS is treated differently because GS is considered not usable with 4 icicles and casting a frostbolt
-	var.gs_condition = 	var.buff.icicles.stack == 5 and var.ttk_effective > var.time_next_gs and 
+	var.gs_condition = 	var.talent.glacial_spike and
+						var.buff.icicles.stack == 5 and var.ttk_effective > var.time_next_gs and 
 						( var.buff.brain_freeze.up or 
 							( var.talent.splitting_ice and var.targets >= 2 ) or 
 							( var.target_can_be_cced and 
@@ -248,8 +249,9 @@ function MageFrost2: updateAllActions()
 	
 	-- main / pre-combat action list
 	--print(var.casting.flurry or var.recent.flurry.cast)
-	self:updateAction(act.main.ice_lance, 	{	var.casting.flurry or var.recent.flurry.cast, 
-												not var.recent.ice_lance.cast, not var.buff.fingers_of_frost.up})
+	self:updateAction(act.main.ice_lance, 	  { var.casting.flurry or var.recent.flurry.cast, 
+												not var.buff.fingers_of_frost.up }) 
+												--not var.recent.ice_lance.cast 
 	
 	self:updateAction(act.cooldowns.icy_veins)
 	self:updateAction(act.cooldowns.mirror_image)
@@ -302,10 +304,11 @@ function MageFrost2: updateAllActions()
 	self:updateAction(act.single.frostbolt)
 	
 	--print(act.freeze.pet_freeze.triggered, act.freeze.pet_freeze.triggered)
-	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, 
+	self:updateAction(act.freeze.pet_freeze,  {	var.casting.glacial_spike, not var.recent.glacial_spike.cast,
 												(var.targets > 1 and var.talent.splitting_ice) or not var.buff.brain_freeze.up })
 	self:updateAction(act.freeze.pet_freeze2,  	var.recent.comet_storm.cast )
-	self:updateAction(act.freeze.frost_nova,  { var.casting.glacial_spike, var.distance <= 12, not var.recent.freeze.cast, 
+	self:updateAction(act.freeze.frost_nova,  { var.casting.glacial_spike, not var.recent.glacial_spike.cast,
+												var.distance <= 12, not var.recent.freeze.cast, 
 												var.targets > 1 or not var.buff.brain_freeze.up } )
 	
 	self:updateAction(act.misc.ice_lance)
