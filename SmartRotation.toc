@@ -1,6 +1,6 @@
 ## Interface: 81000
 ## Title: SmartRotation
-## Version: 0.2.0
+## Version: 1.3.0
 ## Notes: DPS Rotation Icon.
 ## SavedVariablesPerCharacter: SRCONFIG
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibRangeCheck-2.0
@@ -23,7 +23,6 @@ PriestShadow.lua
 DemonhunterHavoc.lua
 PaladinRetribution.lua
 MageFrost.lua
-MageFrost2.lua
 DruidBalance.lua
 DruidFeral.lua
 SmartRotation.lua

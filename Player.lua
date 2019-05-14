@@ -70,6 +70,7 @@ function Player: getAzeriteInfo()
 			end
 		end
 	end
+	--printTable(azerite)
 	return azerite
 end
 

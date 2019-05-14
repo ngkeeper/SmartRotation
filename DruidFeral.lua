@@ -104,18 +104,19 @@ function DruidFeral:_new()
 						5217, 		-- "Tiger's Fury"
 					  }
 
-	Specialization:_new(spells)
+	Specialization._new(self, spells)
 	
 	self:createActions()
 	self.cleave:setTimeout(6)
 	
-	self.icon_cooldown 			= self:createIcon(106951, 40, -50, 0)
+	self.icon_left 				= self:createIcon(106951, 35, -50, 0)
+	self.icon_right 			= self:createIcon(106951, 35, 50, 0)
 	self.icon_tigers_fury_small = self:createIcon(5217, 25, 0, 0, "BOTTOMRIGHT", "HIGH")
 	
 	self.icon_rip 				= self:createIcon(1079, 35, -45, 110, _, _, true)
 	self.icon_rake 				= self:createIcon(1822, 35, 0, 110, _, _, true)
 	self.icon_thrash 			= self:createIcon(106830, 35, 45, 110, _, _, true)
-
+	
 	self.text_rip 				= self:createText(self.icon_rip, 12, 0, -27)
 	self.text_rip_above 		= self:createText(self.icon_rip, 12, 0, 27)
 	self.text_rake 				= self:createText(self.icon_rake, 12, 0, -27)
@@ -126,7 +127,7 @@ end
 
 -- Feral Druid nees a special module to track dot multipliers
 function DruidFeral:update()
-	Specialization: update()
+	Specialization.update(self)
 	self: updateDotMultipliers()
 end
 
@@ -178,6 +179,8 @@ function DruidFeral:createActions()
 	act.generators.swipe_cat2 		= self:newAction(106785, act.generators)
 	act.generators.shred 			= self:newAction(5221, act.generators)
 	
+	act.misc = {}
+	act.misc.moonfire 				= self:newAction(8921, act.misc)
 	--act.opener.tigers_fury = self:newAction()
 	--act.opener.rake = self:newAction()
 end
@@ -346,6 +349,8 @@ function DruidFeral:updateVariables()
 	var.buff.savage_roar 			= self.spells:buff(52610)
 	var.buff.vigor_engaged			= self.spells:buff(287916)
 	
+	var.buff.ca_inc					= var.talent.incarnation and var.buff.incarnation or var.buff.berserk
+	
 	var.dot = var.dot or {}
 	var.dot.rip 					= self.spells:dot(1079, (var.cp + 1) * 4)
 	var.dot.rake 					= self.spells:dot(155722, 15)
@@ -390,7 +395,6 @@ function DruidFeral:updateVariables()
 	var.multiplier.rake 			= var.dot.rake.up and var.multiplier.rake or 0
 	var.multiplier.thrash 			= var.dot.thrash.up and var.multiplier.thrash or 0
 
-	--printTable(var.multiplier)
 end
 
 function DruidFeral:updateDotMultipliers()
@@ -477,9 +481,7 @@ function DruidFeral:updateDotMultipliers()
 	end
 end
 
--- nextSpell() will be called on every frame (with timing), by system event
 function DruidFeral:nextSpell()	
-	
 	self:updateVariables()
 	self:updateAllActions()
 	
@@ -494,12 +496,34 @@ function DruidFeral:nextSpell()
 				  ((var.cp == 5) and not var.disable_finisher) and finishers 
 				  or generators
 	
-	--printTable(self.actions.cooldowns)
 	self:updateIcon(_, spell)	-- '_' for main icon
+	
+	-- Right icon
+	-- Display cooldown spells to be used
+	-- If nil, display duration of tiger's fury
+	-- If not up, display cooldown of tiger's fury
+	
 	if cooldowns == 165572 then 	-- 165572 is the itemId of VIGOR, 133870 is the texture 
-		self:updateIcon(self.icon_cooldown, _, _, 133870)
+		self:updateIcon(self.icon_right, _, _, 133870, _, {0, 1, 0, 1})
+	elseif cooldowns and cooldowns ~= 102543 and cooldowns ~= 106951 and cooldowns ~= 5217 then 
+		self:updateIcon(self.icon_right, cooldowns, _, _, {0, 1, 0, 1})
+	elseif var.buff.tigers_fury.up then 
+		self:updateIcon(self.icon_right, 5217)
+		self:iconSetBuffAnimation(self.icon_right, 5217)
+	elseif cooldowns == 5217 then 
+		self:updateIcon(self.icon_right, 5217, _, _, _, {0, 1, 0, 1})
 	else
-		self:updateIcon(self.icon_cooldown, cooldowns)
+		self:updateIcon(self.icon_right, 5217, 5217)
+	end
+	
+	local id_ca_inc = var.talent.incarnation and 102543 or 106951
+	if var.buff.ca_inc.up then 
+		self:updateIcon(self.icon_left, id_ca_inc)
+		self:iconSetBuffAnimation(self.icon_left, id_ca_inc)
+	elseif cooldowns == 102543 or cooldowns == 106951 then 
+		self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc, _, _, {0, 1, 0, 1})
+	else
+		self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc)
 	end
 	
 	--print(var.cooldown.tigers_fury.up and spell == generators )
@@ -522,15 +546,20 @@ function DruidFeral:nextSpell()
 		self.cleave:temporaryDisable(0, math.max(var.recent.swipe.time or 0, var.recent.primal_wrath.time or 0))
 	end 
 	
+	if SR_DEBUG > 0 then 
+		self:updateIcon(self.icon_rip, 1079, _, _, {1, 1, 1, 1})
+		self:updateIcon(self.icon_rake, 1822, _, _, {1, 1, 1, 1})
+		self:updateIcon(self.icon_thrash, 106830, _, _, {1, 1, 1, 1})
+		
+		self:iconSetDotAnimation(self.icon_rip, 1079, var.dot.rip.refreshable)
+		self:iconSetDotAnimation(self.icon_rake, 155722, var.dot.rake.refreshable)
+		self:iconSetDotAnimation(self.icon_thrash, 106830, var.dot.thrash.refreshable)
+	else 
+		self:updateIcon(self.icon_rip, nil)
+		self:updateIcon(self.icon_rake, nil)
+		self:updateIcon(self.icon_thrash, nil)
+	end
 	if SR_DEBUG > 1 then 
-		self:updateIcon(self.icon_rip, _, _, GetSpellTexture(1079))
-		self:updateIcon(self.icon_rake, _, _, GetSpellTexture(1822))
-		self:updateIcon(self.icon_thrash, _, _, GetSpellTexture(106830))
-		
-		self:updateDotIcon(self.icon_rip, 1079, var.dot.rip.refreshable)
-		self:updateDotIcon(self.icon_rake, 155722, var.dot.rake.refreshable)
-		self:updateDotIcon(self.icon_thrash, 106830, var.dot.thrash.refreshable)
-		
 		self:setText(self.text_rip, tostring(math.floor(var.multiplier.rip * 100 + 0.5 )).."%")
 		self:setText(self.text_rake, tostring(math.floor(var.multiplier.rake * 100 + 0.5 )).."%")
 		self:setText(self.text_thrash, tostring(math.floor(var.multiplier.thrash * 100 + 0.5 )).."%")
@@ -538,14 +567,11 @@ function DruidFeral:nextSpell()
 		self:setText(self.text_rip_above, tostring(var.count.primal_wrath.up).."("..tostring(var.count.primal_wrath.refreshable)..")")
 		self:setText(self.text_rake_above, tostring(var.count.rake.up).."("..tostring(var.count.rake.refreshable)..")")
 		self:setText(self.text_thrash_above, tostring(var.count.thrash.up).."("..tostring(var.count.thrash.refreshable)..")")
-	else 
-		self:updateIcon(self.icon_rip, nil)
-		self:updateIcon(self.icon_rake, nil)
-		self:updateIcon(self.icon_thrash, nil)
-		
+	else
 		self:setText(self.text_rip, "")
 		self:setText(self.text_rake, "")
 		self:setText(self.text_thrash, "")
 	end
 	
+	self:refreshUI()
 end

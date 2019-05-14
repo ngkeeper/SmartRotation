@@ -2,7 +2,7 @@ DruidBalance = {}
 DruidBalance.__index = DruidBalance
 
 setmetatable(DruidBalance, {
-  __index = PlayerRotation, -- inherit from the PlayerRotation class
+  __index = Specialization, -- inherit from the PlayerRotation class
   __call = function (class, ...)
     local self = setmetatable({}, class)
     self:_new(...)
@@ -11,383 +11,436 @@ setmetatable(DruidBalance, {
 })
 
 function DruidBalance:_new()
-	-- all spells are case-sensitive
-	-- (this will be improved in the future)
-	local gcd_spell 	= 	93402 		--"Sunfire"    -- can be any zero-cooldown spell
-	local buff_spell 	= { 102560,		--"Incarnation"
-							194223, 	--"Celestial Alignment"
-							279709, 	--"Starlord"
-							164545, 	--"Solar Empowerment"
-							164547, 	--"Lunar Empowerment"
-							202425, 	--"Warrior of Elune"
-							24858, 		--"Moonkin Form"
-							783, 		--"Travel Form"
-							287790, 	--"Arcanic Pulsar"
-						  }	
-    local dot_spell 	= {	164815, 	--"Sunfire"
-							164812, 	--"Moonfire"
-							202347,		--"Stellar Flare"
-						  }
-    local cd_spell 		= {	202425, 	--"Warrior of Elune"
-							102560, 	--"Incarnation"
-							194223, 	--"Celestial Alignment"
-							211545, 	--"Fury of Elune"
-							205636,		--"Force of Nature"
-							274281, 	--"New Moon"
-							274282, 	--"Half Moon"
-							274283,		--"Full Moon" 
-						  }
-    local casting_spell = {	202347, 	--"Stellar Flare"
-							194153, 	--"Lunar Strike"
-							190984, 	--"Solar Wrath" 	
-							274281, 	--"New Moon"
-							274282, 	--"Half Moon"
-							274283,		--"Full Moon" 
-						  }
-	local cleave_spell 	= {	164812, 	--"Moonfire"
-							194153, 	--"Lunar Strike"
-							191037, 	--"Starfall"
-							279729,		--"Solar Wrath"
-							211545, 	--"Fury of Elune"
-						  }
-						  
-	-- 78674 starsurge
+	local spells = {}
 	
-	local cleave_targets = 2
-	local aoe_targets = 4
+	-- can be any zero-cooldown spell
+	spells.gcd		= 	93402 		--"Sunfire"    
 	
-	PlayerRotation:_new(gcd_spell, buff_spell, dot_spell, cd_spell, casting_spell, cleave_spell, cleave_targets, aoe_targets)
+	spells.buff 	= { 102560,		--"Incarnation"
+						194223, 	--"Celestial Alignment"
+						279709, 	--"Starlord"
+						164545, 	--"Solar Empowerment"
+						164547, 	--"Lunar Empowerment"
+						202425, 	--"Warrior of Elune"
+						24858, 		--"Moonkin Form"
+						783, 		--"Travel Form"
+						287790, 	--"Arcanic Pulsar"
+					  }	
+    
+	spells.dot 		= {	164815, 	--"Sunfire"
+						164812, 	--"Moonfire"
+						202347,		--"Stellar Flare"
+					  }
+    
+	spells.cd  		= {	202425, 	--"Warrior of Elune"
+						102560, 	--"Incarnation"
+						194223, 	--"Celestial Alignment"
+						211545, 	--"Fury of Elune"
+						205636,		--"Force of Nature"
+						274281, 	--"New Moon"
+						274282, 	--"Half Moon"
+						274283,		--"Full Moon" 
+					  }	
 	
-	self.player: setTimeout(4)
-	self.player: setPredictAll(true) 
-	--self.enabled = false
+	-- Spells that cause cleave damage.
+	-- Use IDs from the SPELL_DAMAGE combat log.
+	-- These IDs are usually different from the original spell IDs.
+	-- Associated with self.cleave.
+	spells.cleave 	= {	164812, 	--"Moonfire"
+						194153, 	--"Lunar Strike"
+						191037, 	--"Starfall"
+						279729,		--"Solar Wrath"
+						211545, 	--"Fury of Elune"
+					  }
 	
-	self:createGraphics()
+	-- Spells that need to be tracked from the SPELL_CAST combat log.
+	-- Associated with self.spells:recentCast().
+	spells.trace 	= { 78674, 		-- "Starsurge"
+						164815, 	-- "Sunfire"
+						164812, 	-- "Moonfire"
+						202347,		-- "Stellar Flare"
+						194153, 	-- "Lunar Strike"
+						190984, 	-- "Solar Wrath"
+					  }
+	
+	-- Auras that need to be tracked from the SPELL_AURA_APPLIED/REMOVED combat log.
+	-- Use the default buff module if possible, for better latency and resource.
+	-- This aura tracker records timestamps of auras 
+	-- to determine the interactions between casts and auras.
+	-- Associated with self.spells:auraUp(), doesSpellCastRemoveAura().
+	spells.auras 	= { 164545, 	-- "Solar Empowerment"
+						164547, 	-- "Lunar Empowerment"
+					  }
+	
+	Specialization._new(self, spells)
+	
+	self:createActions()
+	self.cleave:setTimeout(6)
+	
+	self.icon_left				= self:createIcon(102560, 35, -50, 0)
+	self.icon_right 			= self:createIcon(24858, 35, 50, 0)
+	
+	self.icon_sunfire			= self:createIcon(164815, 35, -45, 110, _, _, true)
+	self.icon_moonfire			= self:createIcon(164812, 35, 0, 110, _, _, true)
+	self.icon_stellar_flare		= self:createIcon(202347, 35, 45, 110, _, _, true)
+	
+	self.texture_cancel			= self:createTexture(_, "Interface\\AddOns\\SmartRotation\\cancel-icon")
+	
+	self.text_sunfire			= self:createText(self.icon_sunfire, 12, 0, -27)
+	self.text_moonfire			= self:createText(self.icon_moonfire, 12, 0, -27)
+	self.text_stellar_flare		= self:createText(self.icon_stellar_flare, 12, 0, -27)
 	
 end
-function DruidBalance: createGraphics()
-	self.anchor_x = 0
-	self.anchor_y = -135
-	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y )
-	self.hightlight_aoe = false
 
-	-- the main icon is included in PlayerRotation class
-	-- create icons for major cd display
-	self.button_ca_inc = CreateFrame("Button", "SR_ca_inc", UIParent, "ActionButtonTemplate")
-	self.button_ca_inc: Disable()
-	self.button_ca_inc: SetNormalTexture(self.button_ca_inc: GetHighlightTexture())
-	self.button_ca_inc.icon: SetTexture(GetSpellTexture(194223))
-	if self.talent[5] == 3 then self.button_ca_inc.icon: SetTexture(GetSpellTexture(102560)) end
+function DruidBalance:createActions()
+	local act = self.actions
 	
-	self.cooldown_ca_inc = CreateFrame("Cooldown", "SR_ca_inc_cd", self.button_ca_inc, "CooldownFrameTemplate")
-	self.cooldown_ca_inc: SetAllPoints(self.button_ca_inc)
-	self.cooldown_ca_inc: SetDrawEdge(false)
-	self.cooldown_ca_inc: SetSwipeColor(1, 1, 1, .85)
-	self.cooldown_ca_inc:SetHideCountdownNumbers(false)
+	act.cooldowns = {}
+	act.cooldowns.moonkin_form 		= self:newAction(24858, act.cooldowns)
+	act.cooldowns.warrior_of_elune 	= self:newAction(202425, act.cooldowns)
+	act.cooldowns.fury_of_elune 	= self:newAction(211545, act.cooldowns)
 	
-	self.overlay_ca_inc = self.button_ca_inc:CreateTexture("SR_ca_inc_overlay")
-	self.overlay_ca_inc:SetAllPoints(self.button_ca_inc)
-	self.overlay_ca_inc:SetColorTexture(.15, .5, 0, 0.7)
+	act.spenders = {}
+	act.spenders.cancel_starlord	= self:newAction("CANCEL_STARLORD", act.spenders)
+	act.spenders.starfall 			= self:newAction(191037, act.spenders)
+	act.spenders.starsurge 			= self:newAction(78674, act.spenders)
+	act.spenders.sunfire 			= self:newAction(164815, act.spenders)
+	act.spenders.moonfire 			= self:newAction(164812, act.spenders)
 	
-	self.button_cds = CreateFrame("Button", "SR_cds", UIParent, "ActionButtonTemplate")
-	self.button_cds: Disable()
-	self.button_cds: SetNormalTexture(self.button_cds: GetHighlightTexture())
-	--self.button_cds.icon: SetTexture(GetSpellTexture(211545))
-	self.button_cds: Hide()
+	act.dots = {}
+	act.dots.sunfire 				= self:newAction(164815, act.dots)
+	act.dots.moonfire 				= self:newAction(164812, act.dots)
+	act.dots.stellar_flare 			= self:newAction(202347, act.dots)
 	
-	self.texture_cancel = self.button:CreateTexture("SR_texture_cancel", "Overlay")
-	self.texture_cancel:SetTexture("Interface\\AddOns\\SmartRotation\\cancel-icon")
-	self.texture_cancel:SetAllPoints(self.button)
-	self.texture_cancel:SetVertexColor(1, 1, 1, 1)
-	self.texture_cancel:Hide()
-	
-	--self.foo = self:createIcon(GetSpellTexture(93402), 50, 100, 0, true)
-	--self:iconColor(self.foo, .5, 1, 1, 1)
-	--self:iconCooldown(self.foo, GetTime(), 10)
-	--self:iconGlow(self.foo)
-	
-	self:setSize()
+	act.generators = {}
+	act.generators.new_moon 		= self:newAction(164815, act.generators)
+	act.generators.half_moon 		= self:newAction(164815, act.generators)
+	act.generators.full_moon 		= self:newAction(164815, act.generators)
+	act.generators.lunar_strike 	= self:newAction(164815, act.generators)
+	act.generators.solar_wrath 		= self:newAction(164815, act.generators)
 end
-function DruidBalance: setSize(size)
-	PlayerRotation:setSize(size)
-	self.size = size or self.size
-	self.ui_ratio = self.size / 50
-	self.button_ca_inc: SetSize(self.size * 0.7, self.size * 0.7)
-	self.button_cds: SetSize(self.size * 0.7, self.size * 0.7)
-	self.button_ca_inc: SetPoint("CENTER", self.anchor_x - 50 * self.ui_ratio, self.anchor_y )
-	self.button_cds: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y )
-end	
-function DruidBalance: setPosition(x, y)
-	PlayerRotation:setPosition(x, y)
-	self.anchor_x = x or self.anchor_x
-	self.anchor_y = y or self.anchor_y
-	self:setSize()
-end
-function DruidBalance: enable()
-	PlayerRotation: enable()
-	self.button_ca_inc: Show()
-	self.button_cds: Show()
-end
-function DruidBalance: disable()	
-	PlayerRotation: disable()
-	self.button_ca_inc: Hide()
-	self.button_cds: Hide()
-end 
-function DruidBalance: updateStatus()
 
-	local s = self.status
-
-	s.gcd = self.player:getGCD()
-	s.time_to_kill = self.player:timeToKill() 
-	s.focus_time_to_kill = self.player:timeToKill("focus")
-	s.is_cleave = self.player:isCleave()
-	s.is_aoe = self.player:isAOE()
-	s.targets_hit = math.max(1, self.player: getCleaveTargets())
+function DruidBalance:updateVariables()
+	local var = self.variables
 	
-	s.talent_natures_balance = (self.talent[1] == 1)
-	s.talent_starlord = (self.talent[5] == 2)
-	s.talent_incarnation = (self.talent[5] == 3)
-	s.talent_stellar_drift = (self.talent[6] == 1)
-	s.talent_twin_moons = (self.talent[6] == 2)
-	s.talent_shooting_stars = (self.talent[7] == 1)
+	var.gcd 		= self.spells:getGcd()
+	var.dt 			= self.spells:timeNextSpell()
+	var.ap			= self.player:power(Enum.PowerType.LunarPower)
+	var.ap_max 		= self.player:powerMax(Enum.PowerType.LunarPower)
 	
-	s.astral_power = self.player: getPower()
+	self.cleave:setLowHealthThreshold(select(2, self.player:dps()) * 6)
 	
-	s.last_cast = self.player: getLastCast()
-	s.last_cast_time = self.player: getLastCastTime()
-	if s.last_cast_time >= 2 * s.gcd then s.last_cast = 0 end
-	if s.last_cast == 78674 and not s.single_target_lock then 	-- stop AOE rotation if starsurge is used
-		--self.player:resetCleave() 
-		s.single_target_timer = GetTime() + 4
-	end	
-	s.single_target_timer = s.single_target_timer or GetTime()
-	s.single_target_lock = ( GetTime() - s.single_target_timer ) < 0
+	var.targets 			= self.cleave:targets()
+	var.targets_low_health 	= select(5, self.cleave:targets())
+	var.targets_high_health = var.targets - var.targets_low_health
 	
-	s.next_spell_time = self.player: getNextSpellTime() 
+	var.ttk = self.player:timeToKill()
+	var.ttk_effective = var.ttk * math.min(2, 0.9 + (var.targets == 0 and 0.1 or 0) + var.targets / 10 )
 	
-	s.casting_solar_wrath = self.player: isSpellCasting(190984)
-	s.casting_lunar_strike = self.player: isSpellCasting(194153)
-	s.casting_stellar_flare = self.player: isSpellCasting(202347)
-	s.casting_new_moon = self.player: isSpellCasting(274281)
-	s.casting_half_moon = self.player: isSpellCasting(274282)
-	s.casting_full_moon = self.player: isSpellCasting(274283)
-
-	-- ap_check, ref Hekili v8.1.0-09
-	-- astral_power.current 
-	-- - action.[spell].cost 
-	-- + ( talent.shooting_stars.enabled and 4 or 0 ) 
-	-- + ( talent.natures_balance.enabled and ceil( execute_time / 1.5 ) or 0 ) 
-	-- < astral_power.max
+	var.azerite = {}
+	var.azerite.streaking_stars 	= self.player: getAzeriteRank(122) > 0
+	var.azerite.arcanic_pulsar 		= self.player: getAzeriteRank(200) > 0
+	var.azerite.lively_spirit 		= self.player: getAzeriteRank(364) > 0
 	
-	s.ap_predict = s.astral_power + ( s.talent_shooting_stars and 4 or 0) 
-		+ ( s.talent_natures_balance and ceil( s.next_spell_time / 1.5 ) or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_solar_wrath and 8 or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_lunar_strike and 12 or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_stellar_flare and 8 or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_new_moon and 10 or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_half_moon and 20 or 0 )
-	s.ap_predict = s.ap_predict + ( s.casting_full_moon and 40 or 0 )
-	s.ap_predict = min(s.ap_predict, 100)
+	var.talent = var.talent or {}
+	var.talent.natures_balance 		= self.talent[1] == 1
+	var.talent.warrior_of_elune 	= self.talent[1] == 2
+	var.talent.starlord 			= self.talent[5] == 2
+	var.talent.incarnation 			= self.talent[5] == 3
+	var.talent.stellar_drift 		= self.talent[6] == 1
+	var.talent.twin_moons 			= self.talent[6] == 2
+	var.talent.stellar_flare		= self.talent[6] == 3
+	var.talent.shooting_stars 		= self.talent[7] == 1
+	var.talent.fury_of_elune 		= self.talent[7] == 2
+		
+	var.cooldown = var.cooldown or {}
+	var.cooldown.incarnation 			= self.spells:cooldown(102560)
+	var.cooldown.celestial_alignment 	= self.spells:cooldown(194223)
 	
-	s.ap_deficit = 100 - s.ap_predict
+	var.cooldown.ca_inc = var.talent.incarnation and var.cooldown.incarnation or var.cooldown.celestial_alignment
 	
-	s.refreshable_sunfire = self.player: isDotRefreshable(164815, "target", 18)
-	s.refreshable_moonfire = self.player: isDotRefreshable(164812, "target", 22)
-	s.refreshable_stellar_flare = self.player: isDotRefreshable(202347, "target", 24)
-	s.focus_refreshable_sunfire = self.player: isDotRefreshable(164815, "focus", 18)
-	s.focus_refreshable_moonfire = self.player: isDotRefreshable(164812, "focus", 22)
-	s.focus_refreshable_stellar_flare = self.player: isDotRefreshable(202347, "focus", 24)
-	s.dot_moonfire = self.player: isDotUp(164812)
+	var.buff = var.buff or {}
+	var.buff.moonkin_form 			= self.spells:buff(24858)
+	var.buff.travel_form 			= self.spells:buff(783)
+	var.buff.solar_empowerment 		= self.spells:buff(164545)
+	var.buff.lunar_empowerment 		= self.spells:buff(164547)
+	var.buff.starlord 				= self.spells:buff(279709)
+	var.buff.arcanic_pulsar 		= self.spells:buff(287790)
+	var.buff.incarnation 			= self.spells:buff(102560)
+	var.buff.celestial_alignment 	= self.spells:buff(194223)
+	var.buff.warrior_of_elune 		= self.spells:buff(202425)
 	
-	s.buff_moonkin_form = self.player: isBuffUp(24858)
-	s.buff_travel_form = self.player: isBuffUp(783)
+	var.buff.ca_inc = var.talent.incarnation and var.buff.incarnation or var.buff.celestial_alignment
 	
-	--s.buff_solar_empowerment = self.player: isBuffUp(164545)
-	s.buff_stack_solar_empowerment = self.player: getBuffStack(164545) - ( s.casting_solar_wrath and 1 or 0 )
-	s.buff_solar_empowerment = s.buff_stack_solar_empowerment > 0
+	var.casting = var.casting or {}
+	-- The default casting detector adds a short delay (~300ms) after a cast finishes.
+	-- The second parameter removes such delay. 
+	-- The delay is usually preferrable, as there is a delay between ending casts and landing spells
+	-- However, such delay will result in inaccurate resource estimation
+	-- Remove delay (i.e., 'true' for the 2nd parameter) if the spell is related to resource generation
+	-- Keep delay (i.e., default) if the spell applies buff/debuff
+	var.casting.solar_wrath 		= self.spells:isCasting(190984, true)
+	var.casting.lunar_strike 		= self.spells:isCasting(194153, true)
+	var.casting.stellar_flare 		= self.spells:isCasting(202347)
+	var.casting.new_moon 			= self.spells:isCasting(274281, true)
+	var.casting.half_moon 			= self.spells:isCasting(274282, true)
+	var.casting.full_moon 			= self.spells:isCasting(274283, true)
 	
-	--s.buff_lunar_empowerment = self.player: isBuffUp(164547) 
-	s.buff_stack_lunar_empowerment = self.player: getBuffStack(164547) - ( s.casting_lunar_strike and 1 or 0 )
-	s.buff_lunar_empowerment = s.buff_stack_lunar_empowerment > 0
+	var.dot = var.dot or {}
+	var.dot.sunfire 				= self.spells:dot(164815, 18)
+	var.dot.moonfire 				= self.spells:dot(164812, 22)
+	var.dot.stellar_flare			= self.spells:dot(202347, 24)
 	
-	s.buff_starlord = self.player: isBuffUp(279709)
-	s.buff_remain_starlord = self.player: getBuffRemain(279709)
-	s.buff_stack_starlord = self.player: getBuffStack(279709) or 0
-	s.buff_stack_arcanic_pulsar = self.player: getBuffStack(287790) or 0
+	var.count = var.count or {}
+	var.count.sunfire 				= self.spells:dotCount(164815, 18)
+	var.count.moonfire 				= self.spells:dotCount(164812, 22)
+	var.count.stellar_flare 		= self.spells:dotCount(202347, 24)
 	
-	s.buff_incarnation = self.player: isBuffUp(102560)
-	s.buff_remain_incarnation = self.player: getBuffRemain(102560)
-	s.buff_celestial_alignment = self.player: isBuffUp(194223)
-	s.buff_remain_celestial_alignment = self.player: getBuffRemain(194223)
-	s.buff_warrior_of_elune = self.player: isBuffUp(202425)
+	var.recent = var.recent or {}
+	var.recent.starsurge			= self.spells:recentCast(78674)
+	var.recent.starfall				= self.spells:recentCast(191037)
 	
-	s.ca_inc_up = s.buff_incarnation or s.buff_celestial_alignment
-	s.ca_inc_remain = s.buff_remain_incarnation or s.buff_remain_celestial_alignment
+	var.previous_cast 				= self.spells:recentCast()
 	
-	s.ca_inc_cd = s.ca_inc_cd or 0
-	s.ca_inc_cd_start = s.ca_inc_cd_start or 0
-	local cd_start, cd_total = GetSpellCooldown(102560)
-	if cd_total > s.gcd then
-		s.ca_inc_cd = cd_total
-		s.ca_inc_cd_start = cd_start
+	var.buff.lunar_empowerment.stack = max(var.buff.lunar_empowerment.stack - (var.casting.lunar_strike and 1 or 0), 0)
+	var.buff.lunar_empowerment.up = var.buff.lunar_empowerment.up and var.buff.lunar_empowerment.stack > 0
+	var.buff.solar_empowerment.stack = max(var.buff.solar_empowerment.stack - (var.casting.solar_wrath and 1 or 0), 0)
+	var.buff.solar_empowerment.up = var.buff.solar_empowerment.up and var.buff.solar_empowerment.stack > 0
+	
+	var.ap_predict = var.ap + ( var.talent.natures_balance and ceil( var.dt / 1.5 ) or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.solar_wrath and 8 or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.lunar_strike and 12 or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.stellar_flare and 8 or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.new_moon and 10 or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.half_moon and 20 or 0 )
+	var.ap_predict = var.ap_predict + ( var.casting.full_moon and 40 or 0 )
+	var.ap_predict = min(var.ap_predict, var.ap_max)
+	
+	var.ap_deficit = var.ap_max - var.ap_predict - 
+					( var.talent.shooting_stars and ( var.dot.moonfire.up or var.dot.sunfire.up ) and 4 or 0 ) 
+	
+	var.sf_targets = 4
+	if var.talent.twin_moons and ( var.azerite.arcanic_pulsar or var.talent.starlord ) then 
+		var.sf_targets = var.sf_targets + 1
 	end
-	local cd_start, cd_total = GetSpellCooldown(194223)
-	if cd_total > s.gcd then
-		s.ca_inc_cd = cd_total
-		s.ca_inc_cd_start = cd_start
+	if not var.azerite.arcanic_pulsar and not var.talent.starlord and var.talent.stellar_drift then 
+		var.sf_targets = var.sf_targets - 1
 	end
-	s.ca_inc_cd_remain = math.max(0, s.ca_inc_cd + s.ca_inc_cd_start - GetTime())
-	
-	s.az_ss = self:getAzeriteRank(122) or 0 	-- Azerite power: streaking stars
-	s.az_ap = self:getAzeriteRank(200) or 0		-- Azerite power: arcanic pulsar
-	--print(tostring(s.az_ss).." "..tostring(s.az_ap))
-	
-	s.sf_targets = 4
-	if s.talent_twin_moons and s.talent_starlord then s.sf_targets = 5 end
-	if s.talent_stellar_drift and not(s.talent_starlord) then s.sf_targets = 3 end
-	
 end
-function DruidBalance: nextSpell()
-	if not(self.enabled) then 
-		--self.button_void_eruption:Hide()
-		--self.button_mindbender:Hide()
-		return nil
+
+function DruidBalance:updateAllActions()
+	-- self:updateAction(action, {condition1, conditon2, ..})
+	-- 
+	-- updateAction() checks if all condtions are met and 
+	-- if the spell is (1)off cooldown (2)usable(resource) (3)not being cast
+	--
+	-- Use updateAction(action, _, [true/false]) to override
+	-- 
+	-- When should this override be used:
+	-- (1) The spell can be consecutively casted, or
+	-- (2) The spell requires resource from a previous casting spell.
+	--     e.g. Player has 4 icicles, and is casting frostbolt. 
+	-- 			It can be expected that player will get another icicle from the frostbolt,
+	-- 			and will be able to cast Glacial Spike. 
+	-- 			SR should prompt Glacial Spike despite the spell is not currently usable (4 icicles). 
+	-- (3) The action is not to cast a spell (e.g. use item, cancel aura). 
+	--
+	-- All actions have to be updated, including unconditioned ones
+	local var = self.variables
+	local act = self.actions
+	
+	act.cooldowns.warrior_of_elune 	= self:newAction(202425, act.cooldowns)
+	act.cooldowns.fury_of_elune 	= self:newAction(211545, act.cooldowns)
+	
+	act.spenders = {}
+	act.spenders.cancel_starlord	= self:newAction("CANCEL_STARLORD", act.spenders)
+	act.spenders.starfall 			= self:newAction(191037, act.spenders)
+	act.spenders.starsurge 			= self:newAction(78674, act.spenders)
+	act.spenders.sunfire 			= self:newAction(164815, act.spenders)
+	act.spenders.moonfire 			= self:newAction(164812, act.spenders)
+	
+	act.dots = {}
+	act.dots.sunfire 				= self:newAction(164815, act.dots)
+	act.dots.moonfire 				= self:newAction(164812, act.dots)
+	act.dots.stellar_flare 			= self:newAction(202347, act.dots)
+	
+	act.dots_focus = {}
+	act.dots_focus.sunfire 			= self:newAction(164815, act.dots_focus)
+	act.dots_focus.moonfire 		= self:newAction(164812, act.dots_focus)
+	act.dots_focus.stellar_flare 	= self:newAction(202347, act.dots_focus)
+	
+	act.generators = {}
+	act.generators.new_moon 		= self:newAction(274281, act.generators)
+	act.generators.half_moon 		= self:newAction(274282, act.generators)
+	act.generators.full_moon 		= self:newAction(274283, act.generators)
+	act.generators.lunar_strike 	= self:newAction(194153, act.generators)
+	act.generators.solar_wrath 		= self:newAction(190984, act.generators)
+	
+	act.misc = {}
+	act.misc.sunfire 				= self:newAction(164815, act.misc)
+	var.targets = 1
+	self:updateAction(act.cooldowns.moonkin_form, 		not var.buff.moonkin_form.up)
+	self:updateAction(act.cooldowns.warrior_of_elune)
+	self:updateAction(act.cooldowns.fury_of_elune, {	var.buff.ca_inc.up or var.cooldown.ca_inc.remain > 30, 
+														var.ap_deficit >= 8 } )
+
+	-- override because "cancel starlord" is not a spell													
+	self:updateAction(act.spenders.cancel_starlord, _, 	var.buff.starlord.up and var.buff.starlord.remain < 8 and var.ap_deficit < 8 )
+	self:updateAction(act.spenders.starfall,		  {	var.buff.starlord.stack < 3 or var.buff.starlord.remain >= 8, 
+														var.targets >= var.sf_targets })
+
+	-- override because of resource (astral power)
+	self:updateAction(act.spenders.starsurge, _,		var.ap_predict >= 40 and 
+														( var.talent.starlord and 
+														  ( var.buff.starlord.stack < 3 or var.buff.starlord.remain >= 8 and 
+														    var.buff.arcanic_pulsar.stack < 8 ) or 
+														  not var.talent.starlord and 
+														  (var.buff.arcanic_pulsar.stack < 8 or var.buff.ca_inc.up ) ) and
+														var.targets < var.sf_targets and 
+														var.buff.lunar_empowerment.stack + var.buff.solar_empowerment.stack < 4 and 
+														var.buff.solar_empowerment.stack < 3 and var.buff.lunar_empowerment.stack < 3 and 
+														( not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
+														  not var.recent.starsurge.cast ) or 
+														var.ap_deficit < 8 )
+	self:updateAction(act.spenders.sunfire,	  		  { var.buff.ca_inc.up, var.buff.ca_inc.remain < var.gcd, 
+														var.azerite.streaking_stars, var.dot.moonfire.remain > var.dot.sunfire.remain })
+	self:updateAction(act.spenders.moonfire,	  	  { var.buff.ca_inc.up, var.buff.ca_inc.remain < var.gcd, 
+														var.azerite.streaking_stars })
+
+	local sunfire_conditions 						  = var.ttk_effective > 6 and var.ap_deficit >= 3 and 
+														not var.azerite.streaking_stars or not var.buff.ca_inc.up or var.previous_cast ~= 164815
+	local moonfire_conditions 						  = var.ttk_effective > 9 and var.ap_deficit >= 3 and 
+														not var.azerite.streaking_stars or not var.buff.ca_inc.up or var.previous_cast ~= 164812
+	local stellar_flare_conditions 					  = var.ttk_effective > 9 and var.ap_deficit >= 8 and 
+														not var.azerite.streaking_stars or not var.buff.ca_inc.up or var.previous_cast ~= 202347
+	
+	self:updateAction(act.dots.sunfire, 			  { var.dot.sunfire.refreshable, sunfire_conditions } )
+	self:updateAction(act.dots.moonfire, 			  { var.dot.moonfire.refreshable, moonfire_conditions } )
+	self:updateAction(act.dots.stellar_flare, 		  { var.dot.stellar_flare.refreshable, stellar_flare_conditions } )
+	
+	
+	local not_casting_moon = not ( var.casting.new_moon or var.casting.half_moon or var.casting.full_moon )
+	self:updateAction(act.generators.new_moon, 		  {	var.ap_deficit >= 10, not_casting_moon} )
+	self:updateAction(act.generators.half_moon, 	  {	var.ap_deficit >= 20, not_casting_moon} )
+	self:updateAction(act.generators.full_moon, 	  {	var.ap_deficit >= 40, not_casting_moon} )
+	
+	-- override because of consecutive casts
+	self:updateAction(act.generators.lunar_strike, _,	var.buff.solar_empowerment.stack < 3 and 
+														( var.ap_deficit >= 12 or var.buff.lunar_empowerment.stack == 3 ) and
+														( ( var.buff.warrior_of_elune.up or var.buff.lunar_empowerment.up or 
+														    var.targets > 1 and not var.buff.solar_empowerment.up ) and 
+														  ( not var.azerite.streaking_stars or not var.buff.ca_inc.up ) or 
+														  var.azerite.streaking_stars and var.buff.ca_inc.up and 
+														  ( var.previous_cast == 190984 or var.casting.solar_wrath ) ))
+	self:updateAction(act.generators.solar_wrath, _,	not var.azerite.streaking_stars or not var.buff.ca_inc.up 
+														or var.previous_cast ~= 202347 and not var.casting.solar_wrath)
+
+	self:updateAction(act.misc.sunfire)
+end
+
+function DruidBalance:nextSpell()	
+
+	self:updateVariables()
+	self:updateAllActions()
+	
+	local var = self.variables
+	
+	local cooldown 		= self:runActionList(self.actions.cooldowns)
+	local spender 		= self:runActionList(self.actions.spenders)
+	local dot 			= self:runActionList(self.actions.dots)
+	local dot_focus 	= self:runActionList(self.actions.dots_focus)
+	local generator 	= self:runActionList(self.actions.generators)
+	
+	-- The "misc" action list consists an unconditional sunfire action
+	-- to detect if player can cast spells.
+	-- Use this to hide the overriden actions if player cannot cast spells.
+	local can_use_spells = self:runActionList(self.actions.misc)
+	
+	-- Spenders are associated with predicted astral power.
+	-- Adds a buffer to reduce the "noise".
+	-- This delays the spender by ~300ms.
+	local spender_filtered 
+	if spender and (spender == self.last_spender or spender) then 
+		self.spender_buffer = ( self.spender_buffer or 2 ) + 1
+		spender_filtered = ( self.spender_buffer >= 3 ) and spender or nil
+	else 
+		self.last_spender = spender
+		self.spender_buffer = 0
 	end
 	
-	self:updateStatus()
-	local s = self.status
-
-	self.player: setAOEThreshold(s.sf_targets)
+	-- self:updateIcon(icon, spell, [cooldown, texture])
+	-- Displays the spell on the specified icon (main icon if not specified).
+	-- Hide icons with 'nil' spell arg. 
+	-- Use texture arg if the desired texture is not a spell.
 	
-	-- self:setAction(spell, conditions, [optional]): 
-	-- modifies self.next_spell if all conditions are met
-	-- returns self.next_spell, or a nil value if spell is not usable or conditions are not met
-	-- if a third parameter is defined, setAction() not make any change
-	self.next_spell_trigger = true
-	
-	-- these major cds will be displayed as independent icons
-	-- if spell usable - show icon; 
-	-- if spell is the next rotation action - glow icon	
-
-	-------------------
-	-- simc action list
-	-- print(charge_shadow_word_void)
-	
-	
-	local woe_action, woe_usable = self: setAction(202425, s.time_to_kill > 6, 1)	-- "Warrior of Elune"
-	local foe_action, foe_usable = self: setAction(211545, {s.ca_inc_up or s.ca_inc_cd_remain > 30, s.ap_deficit >= 8}, 1)	-- "Fury of Elune"
-	
-	local cancel_starlord = self: setAction(93402, {s.buff_starlord, s.buff_remain_starlord < 8, s.ap_deficit < 8})
-	
-	self: setAction(191037, {s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8, s.is_aoe, not s.single_target_lock})	--"Starfall"
-	local _, _, condSS = self: setAction(78674, { s.talent_starlord and 
-							 ( s.buff_stack_starlord < 3 or s.buff_remain_starlord >= 8 and s.buff_stack_arcanic_pulsar < 8) or 
-							 not s.talent_starlord and ( s.buff_stack_arcanic_pulsar < 8 or s.ca_inc_up ) ,
-							 s.single_target_lock or not s.is_aoe, s.buff_stack_lunar_empowerment + s.buff_stack_solar_empowerment < 4, 
-							 s.buff_stack_solar_empowerment < 3, s.buff_stack_lunar_empowerment < 3,
-							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 78674 } )  --"Starsurge" 
-	--print(condSS)
-	
-	self: setAction(78674, s.ap_deficit < 8) -- s.time_to_kill < s.gcd * ( s.astral_power % 40 ) "Starsurge" 
-	
-	self: setAction(164815, {s.refreshable_sunfire, s.time_to_kill * max(2, s.targets_hit) > 6, s.ap_deficit >= 3, 
-							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
-							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
-	self: setActionFocus(164815, {s.focus_refreshable_sunfire, s.focus_time_to_kill * max(2, s.targets_hit) > 6, s.ap_deficit >= 3, 
-							 -- s.targets_hit > 1 + (( s.talent_twin_moons or s.dot_moonfire ) and 1 or 0), 
-							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164815 }) -- “Sunfire"
-	
-	self: setAction(164812, {s.refreshable_moonfire, s.time_to_kill * max(2, s.targets_hit) > 9, s.ap_deficit >= 3, 
-							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
-	self: setActionFocus(164812, {s.focus_refreshable_moonfire, s.focus_time_to_kill * max(2, s.targets_hit) > 9, s.ap_deficit >= 3, 
-							 s.az_ss == 0 or (not s.ca_inc_up) or s.last_cast ~= 164812 }) -- "Moonfire"
-	
-	local stellar_flare_conditions = s.refreshable_stellar_flare and 
-									 s.time_to_kill * s.targets_hit > 9 and s.ap_deficit >= 8 and 
-									 (s.az_ss == 0 or (not s.ca_inc_up) or (s.last_cast ~= 202347 and not s.casting_stellar_flare)) 
-	self: setAction(202347, stellar_flare_conditions) -- "Stellar Flare"
-	self: setActionFocus(202347, {s.focus_refreshable_stellar_flare,  
-								  s.focus_time_to_kill * s.targets_hit > 9, s.ap_deficit >= 8,  
-								  s.az_ss == 0 or (not s.ca_inc_up) or (s.last_cast ~= 202347 and not s.casting_stellar_flare)}, 
-						 stellar_flare_conditions and s.casting_stellar_flare) -- "Stellar Flare"
-	--self: setActionFocus(202347, stellar_flare_conditions, stellar_flare_conditions and s.casting_stellar_flare) -- "Stellar Flare"
-	-- setActionFocus() will not register the event if the spell is already being cast 
-	-- however, if player is casting stellar flare on 'target', SR should still prompt player to cast on 'focus'
-	
-	local not_casting_moon = not ( s.casting_new_moon or s.casting_half_moon or s.casting_full_moon )
-	self: setAction(274281, {s.ap_deficit >= 10, not_casting_moon})	--"New Moon"
-	self: setAction(274282, {s.ap_deficit >= 20, not_casting_moon})	--"Half Moon"
-	self: setAction(274283, {s.ap_deficit >= 40, not_casting_moon})	--"Full Moon"
-	self: setAction(194153, {s.buff_stack_solar_empowerment < 3, 
-							 s.ap_deficit >= 12 or s.buff_stack_lunar_empowerment == 3, 
-							 (s.buff_warrior_of_elune or s.buff_lunar_empowerment or s.is_cleave and not s.buff_solar_empowerment) and 
-							 (s.az_ss == 0 or (not s.ca_inc_up) or 
-							 (s.last_cast ~= 194153 and not s.casting_lunar_strike and (true or not(s.talent_incarnation)) or (s.last_cast == 190984 or s.casting_solar_wrath) and not s.casting_lunar_strike)) 
-							 or s.az_ss > 0 and s.ca_inc_up and (s.last_cast == 190984 or s.casting_solar_wrath) and not s.casting_lunar_strike }
-							 )	--"Lunar Strike"
-	--actions+=/lunar_strike,if=buff.solar_empowerment.stack<3&(ap_check|buff.lunar_empowerment.stack=3)&((buff.warrior_of_elune.up|buff.lunar_empowerment.up|spell_targets>=2&!buff.solar_empowerment.up)&(!variable.az_ss|!buff.ca_inc.up|(!prev.lunar_strike&!talent.incarnation.enabled|prev.solar_wrath))|variable.az_ss&buff.ca_inc.up&prev.solar_wrath)
-	self: setAction(190984, s.az_ss < 3 or not(s.ca_inc_up) or (s.last_cast ~= 190984 and not s.casting_solar_wrath) )	--"Solar Wrath"
-	self: setAction(164815)
-	
-	if self.next_spell_trigger == true then 
-		self.next_spell_trigger = false
-		self.next_spell = 190984
-	end
-	
-	----------------------
-	-- display the results
-	self:updateIcon()
-	
-	if cancel_starlord then 
-		self:updateIcon(nil, nil, 279709)
-		self.texture_cancel: Show()
+	if not can_use_spells then 
+		self:updateIcon(_, nil)
+		self:updateIcon(self.icon_left, nil)
+		self:updateIcon(self.icon_right, nil)
 	else
-		self.texture_cancel: Hide()
-	end
-	
-	local button_cd_glow = false
-	
-	if woe_usable then 
-		self:updateIcon(self.button_cds, nil, 202425)
-		if woe_action and self.next_spell == 194153 then button_cd_glow = true end
-	else
-		if foe_usable then 
-			self:updateIcon(self.button_cds, nil, 211545)
-			if foe_action then button_cd_glow = true end
-		else 
-			self.button_cds: Hide()
+		local spell = spender_filtered or dot or generator
+		if spell == "CANCEL_STARLORD" then 
+			self:updateIcon(_, _, _, 462651)
+			self.texture_cancel:Show()
+		else
+			self:updateIcon(_, spell)
+			self.texture_cancel:Hide()
+		end
+		self:updateIcon(self.icon_right, cooldown)
+		local id_ca_inc = var.talent.incarnation and 102560 or 194223
+		if not var.buff.ca_inc.up then 
+			self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc)
+		else
+			self:updateIcon(self.icon_left, id_ca_inc)
+			self:iconSetBuffAnimation(self.icon_left, id_ca_inc)
+		end
+		if not cooldown then 
+			if var.talent.warrior_of_elune then 
+				self:updateIcon(self.icon_right, 202425, 202425)
+			elseif var.talent.fury_of_elune then 
+				self:updateIcon(self.icon_right, 211545, 211545)
+			end
 		end
 	end
-	
-	if not s.buff_moonkin_form and not s.buff_travel_form and not IsMounted() then 
-		self:updateIcon(self.button_cds, nil, 24858)
-		button_cd_glow = true
-	end
-	
-	if button_cd_glow then 
-		ActionButton_ShowOverlayGlow(self.button_cds)
+		
+	if SR_DEBUG > 0 then 
+		if not var.talent.stellar_flare then 
+			self:iconConfig(self.icon_sunfire, _, _, -22.5, _)
+			self:iconConfig(self.icon_moonfire, _, _, 22.5, _)
+		else
+			self:iconConfig(self.icon_sunfire, _, _, -45, _)
+			self:iconConfig(self.icon_moonfire, _, _, 0, _)
+		end
+		self:updateIcon(self.icon_sunfire, 164815, _, _, {1, 1, 1, 1})
+		self:updateIcon(self.icon_moonfire, 164812, _, _, {1, 1, 1, 1})
+		
+		self:iconSetDotAnimation(self.icon_sunfire, 164815, var.dot.sunfire.refreshable)
+		self:iconSetDotAnimation(self.icon_moonfire, 164812, var.dot.moonfire.refreshable)
+		
+		if var.talent.stellar_flare then 
+			self:updateIcon(self.icon_stellar_flare, 202347, _, _, {1, 1, 1, 1})
+			self:iconSetDotAnimation(self.icon_stellar_flare, 202347, var.dot.stellar_flare.refreshable)
+		else
+			self:updateIcon(self.icon_stellar_flare, nil)
+		end 
 	else 
-		ActionButton_HideOverlayGlow(self.button_cds)
+		self:updateIcon(self.icon_sunfire, nil)
+		self:updateIcon(self.icon_moonfire, nil)
+		self:updateIcon(self.icon_stellar_flare, nil)
 	end
 	
-	if s.ca_inc_cd_remain > 0 then 
-		self.cooldown_ca_inc:SetCooldown(s.ca_inc_cd_start, s.ca_inc_cd)
+	if SR_DEBUG > 1 then 
+		self:setText(self.text_sunfire, tostring(var.count.sunfire.up).."("..tostring(var.count.sunfire.refreshable)..")")
+		self:setText(self.text_moonfire, tostring(var.count.moonfire.up).."("..tostring(var.count.moonfire.refreshable)..")")
+		
+		if var.talent.stellar_flare then 
+			self:setText(self.text_stellar_flare, tostring(var.count.stellar_flare.up).."("..tostring(var.count.stellar_flare.refreshable)..")")
+		else
+			self:setText(self.text_stellar_flare, "")
+		end 
+	else
+		self:setText(self.text_sunfire, "")
+		self:setText(self.text_moonfire, "")
+		self:setText(self.text_stellar_flare, "")
 	end
-	if s.ca_inc_up then self.overlay_ca_inc: Show() else self.overlay_ca_inc: Hide() end
-	--self.overlay:SetColorTexture(1, 1, 1, 1)
-	--self.overlay:SetTexture("Interface\\AddOns\\SmartRotation\\cancel-mark.tga")
-	
-	--print(self.player: getLastCast())
-	--print(self.player: getLastCastTime())
-	if DEBUG > 4 then
-		print("SR: Balance Druid module")
-		print("SR: Enabled: ".. tostring(self.enabled))
-		print("SR: Next spell: ".. tostring(self.next_spell))
-		print("SR: Tagets hit: ".. tostring(self.player: getCleaveTargets()))
-		print("SR: Cleave: ".. tostring(self.player: isCleave()))
-		print("SR: AOE: ".. tostring(self.player: isAOE()))
-		print(" ")
-	end
-	return self.next_spell
 end
-

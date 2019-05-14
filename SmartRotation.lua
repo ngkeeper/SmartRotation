@@ -15,7 +15,7 @@ function createPlayer(currentPlayer, enabled)
 	elseif (talent == 70) then -- "Retribution"
 		player = PaladinRetribution()
 	elseif (talent == 64) then -- "Frost"
-		player = MageFrost2()
+		player = MageFrost()
 	elseif (talent == 102) then -- "Balance"
 		player = DruidBalance()
 	elseif (talent == 103) then -- "Feral"
@@ -63,6 +63,7 @@ function createPlayer(currentPlayer, enabled)
 			player:disable()
 		end
 	end
+	collectgarbage()
 	return player
 end
 
@@ -98,6 +99,13 @@ function printTable ( t )
         sub_printTable(t,"  ")
     end
     print()
+end
+
+function printTableShallow(t)
+	print(tostring(t))
+	for i, v in pairs(t) do 
+			print("["..i.."] => "..tostring(val))
+	end 
 end
 
 local player
@@ -224,6 +232,7 @@ f:SetScript("OnUpdate", function(self, ...)
 			if not(toDisable) and not(player: isEnabled()) and enabled then
 				player: enable()
 			end
+			
 			player: update()
 			player: nextSpell()
 		end
