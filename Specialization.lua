@@ -16,9 +16,7 @@ function Specialization: _new(spells)
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
 	self.enabled = true
-	self.next_spell = nil
-	self.next_spell_trigger = false
-	self.next_spell_on_focus = false
+	self.focus = false
 	
 	self.variables = {}
 	self.icons = {}
@@ -86,6 +84,10 @@ function Specialization: disable()
 	self.enabled = false
 end
 
+function Specialization: trackFocus(focus)
+	self.focus = focus or false
+end
+
 function Specialization: setSize(size)
 	self.size = size or self.size
 	self.ui_ratio = self.size / 50
@@ -132,7 +134,7 @@ function Specialization: setText(text, message)
 	end
 end
 
-function Specialization: createIcon(texture, size, x, y, anchor, strata, reverse_cd)
+function Specialization: createIcon(texture, size, x, y, anchor, strata)
 	if type(texture) == "number" then texture = GetSpellTexture(texture) end
 	
 	local icon = {}
@@ -146,9 +148,9 @@ function Specialization: createIcon(texture, size, x, y, anchor, strata, reverse
 	icon.show				= false
 	icon.desaturate 		= false
 	icon.glow				= false
-	icon.cooldown_reverse 	= reverse_cd or false
+	icon.cooldown_reverse 	= false
 	icon.cooldown_color 	= {0, 0, 0, 0.75}
-	icon.cooldown_number	= reverse_cd or false
+	icon.cooldown_number	= false
 	icon.cooldown_edge		= false
 	
 	icon.UIFrame = CreateFrame("Frame", nil, UIParent)
@@ -217,8 +219,10 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 	
 	if cd_spell and icon.UICd then 
 		local start, duration = GetSpellCooldown(cd_spell)
+		self:iconCooldownReverse(icon_id, false)
+		self:iconCooldownNumber(icon_id, true)
+		self:iconCooldownColor(icon_id, 0, 0, 0, 0.75)
 		if duration > 1.5 then 
-			self:iconCooldownColor(icon_id, 0, 0, 0, 0.75)
 			self:iconSetCooldown(icon_id, start, duration)
 		else
 			self:iconSetCooldown(icon_id, 0, 0)
@@ -231,6 +235,7 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 end
 
 function Specialization: iconSetCooldown(icon, start, duration)
+	self.icons[icon].UICd:SetHideCountdownNumbers(not self.icons[icon].cooldown_number) 
 	self.icons[icon].UICd:SetCooldown(start, duration)
 end
 
@@ -239,6 +244,8 @@ function Specialization: iconSetDotAnimation(icon_id, dot_id, refreshable)
 	for i = 1, 40 do
 		local ud_name, _, _, _, ud_duration, ud_expiration, _, _, _, ud_spell_id = UnitDebuff("target", i, "player")
         if ud_spell_id == dot_id then
+			self:iconCooldownReverse(icon_id, true)
+			self:iconCooldownNumber(icon_id, false)
             self:iconSetCooldown(icon_id, ud_expiration - ud_duration, ud_duration)
 			present = true
         end
@@ -258,6 +265,7 @@ function Specialization: iconSetBuffAnimation(icon_id, buff_id)
 	for i = 1, 40 do
         local ub_name, _, ub_stack, _, ub_duration, ub_expiration, _, _, _, ub_spell_id = UnitBuff("player", i)
         if ub_spell_id == buff_id then
+			self:iconCooldownNumber(icon_id, true)
 			self:iconCooldownColor(icon_id, 0.5, 1, 0, 0.5)
 			self:iconCooldownReverse(icon_id, true)
 			self:iconSetCooldown(icon_id, ub_expiration - ub_duration, ub_duration)
@@ -316,6 +324,12 @@ function Specialization: iconCooldownReverse(icon, reversed)
 	end
 end
 
+function Specialization: iconCooldownNumber(icon, number)
+	if self.icons[icon] then 
+		self.icons[icon].cooldown_number = number
+	end
+end
+
 function Specialization: refreshUI()
 	-- self.icon: SetSize(self.size,self.size)
 	-- self.icon: SetPoint("CENTER", self.anchor_x, self.anchor_y)
@@ -335,7 +349,6 @@ function Specialization: refreshUI()
 		v.UICd:SetDrawEdge(v.cooldown_edge)
 		v.UICd:SetReverse(v.cooldown_reverse)
 		v.UICd:SetSwipeColor(unpack(v.cooldown_color))
-		v.UICd:SetHideCountdownNumbers(v.cooldown_number)
 		
 		if v.desaturate then 
 			v.UITexture:SetDesaturated(1)
@@ -452,27 +465,4 @@ function Specialization: updateAction(action, conditions, override, enabled)
 	end	
 	
 	return action
-end
-
-function Specialization: setActionFocus(spell, conditions, nospellcheck)
-	if not self.next_spell_trigger then return nil end
-	if not SRCONFIG.focus then return nil end
-	
-	local guid_target = UnitGUID("target")
-	local guid_focus = UnitGUID("focus")
-	if not(guid_focus) or guid_focus == guid_target then return nil end
-	
-	local _, instance = GetInstanceInfo()
-	if instance == "arena" then return nil end
-	if not UnitCanAttack("player", "focus") then return false end
-	
-	local action_ready, _, all_conditions_met = self: setAction(spell, conditions, 1)
-	 
-	if action_ready or ( nospellcheck and all_conditions_met ) then 
-		self.next_spell = spell
-		self.next_spell_on_focus = true
-		self.next_spell_trigger = false
-		return true
-	end
-	return false
 end

@@ -120,6 +120,7 @@ function PriestShadow: setSize(size)
 		self.button_dark_void: SetPoint("CENTER", self.anchor_x + 50 * self.ui_ratio, self.anchor_y )
 	end
 end	
+
 function PriestShadow: setPosition(x, y)
 	PlayerRotation:setPosition(x, y)
 	self.anchor_x = x or self.anchor_x

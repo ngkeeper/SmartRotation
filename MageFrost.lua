@@ -330,7 +330,13 @@ function MageFrost: nextSpell()
 	-- The "misc" action list consists an unconditional ice lance action
 	-- to detect if player can cast spells
 	local can_use_spells = self:runActionList(self.actions.misc)
-	
+	if not can_use_spells then 
+		self:updateIcon(_, nil)
+		self:updateIcon(self.icon_cooldown, nil)
+		self:updateIcon(self.icon_freeze, nil)
+		self:updateIcon(self.icon_icicles, nil)
+		self:updateIcon(self.icon_icy_veins, nil)
+	end
 	--print(main)
 	local spell = main or ( targets >= 4 ) and aoe or single
 	local short_cds = ( targets >= 4 ) and aoe_cds or single_cds
@@ -341,7 +347,6 @@ function MageFrost: nextSpell()
 	self:updateIcon(_, spell)
 	self:updateIcon(self.icon_cooldown, short_cds)
 	self:updateIcon(self.icon_freeze, freeze)
-	self:updateIcon(self.icon_blizzard, 190356, 190356)
 	self:updateIcon(self.icon_icicles, _, _, 135855)
 	
 	if not short_cds then 
@@ -353,9 +358,9 @@ function MageFrost: nextSpell()
 	end
 	
 	if blizzard_usable then 
-		self:iconGlow(self.icon_blizzard)
+		self:updateIcon(self.icon_blizzard, 190356, 190356, _, _, {0, 1, 0, 1})
 	else
-		self:iconGlow(self.icon_blizzard, false)
+		self:updateIcon(self.icon_blizzard, 190356, 190356)
 	end
 	
 	--self:iconColor(self.icon_icicles, 1, 1, 1, ( var.buff.icicles.stack_raw + 1 )/ 6 )
@@ -369,19 +374,15 @@ function MageFrost: nextSpell()
 	local hide_pet_icon = var.pet_exists or var.talent.lonely_winter or var.casting.water_elemental
 	
 	-- The icy veins icon is overridden. Hide if player can't cast.
-	if can_use_spells then 
-		if hide_pet_icon then 
-			if var.buff.icy_veins.up then 
-				self:updateIcon(self.icon_icy_veins, 12472)
-				self:iconSetBuffAnimation(self.icon_icy_veins, 12472)
-			else
-				self:updateIcon(self.icon_icy_veins, 12472, 12472)
-			end
+	if hide_pet_icon then 
+		if var.buff.icy_veins.up then 
+			self:updateIcon(self.icon_icy_veins, 12472)
+			self:iconSetBuffAnimation(self.icon_icy_veins, 12472)
 		else
-			self:updateIcon(self.icon_icy_veins, 31687, 31687, _, _, {0, 1, 0, 1})
+			self:updateIcon(self.icon_icy_veins, 12472, 12472)
 		end
 	else
-		self:updateIcon(self.icon_icy_veins, nil)
+		self:updateIcon(self.icon_icy_veins, 31687, 31687, _, _, {0, 1, 0, 1})
 	end
 	
 end

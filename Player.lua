@@ -88,6 +88,16 @@ function Player: canBeCCed(unit)
 	return ( level > 0 and level <= 120 ) 
 end
 
+function Player: isFocusEnemy()
+	local exists = UnitExists("focus")
+	local guid_focus = UnitGUID("focus")
+	local guid_target = UnitGUID("target")
+	local attack = UnitCanAttack("player", "focus")
+	local dead = UnitIsDead("focus")
+	
+	return exists and (guid_focus ~= guid_target) and attack and not dead
+end
+
 function Player: timeToKill(unit)
 	local target = unit or "target"
 	local hp_target = UnitHealth(target)

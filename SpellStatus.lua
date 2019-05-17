@@ -97,7 +97,7 @@ function SpellStatus: updateCombat()
 	--print("=====")
 	local player_name = UnitName("player")
 	if source_name == player_name then
-		--print(message, spell_name, spell_id)
+		-- print(message, spell_name, spell_id)
 		if message == "SPELL_CAST_SUCCESS" then 
 			for i, v in ipairs(self.spells.trace) do
 				if v == spell_id then 
@@ -375,6 +375,11 @@ function SpellStatus: updateCd()
 	--self.cds: printMatrix()
 end
 
+function SpellStatus: unitCasting(unit)
+	local uci_spell, _, _, uci_start, uci_end, _, _, _, uci_spell_id  = UnitCastingInfo(unit or "player")
+	return uci_spell_id or false
+end
+
 function SpellStatus: isCasting(spell, uci)
 	-- the default option has ~300ms delay
 	-- this feature is to prevent the "gap"
@@ -420,7 +425,6 @@ function SpellStatus: isSpellReady(spell)
 	local switched_target = (UnitGUID("target") ~= self.casting.target_GUID)
 	local not_recently_cast = not(is_cd_spell or is_dot_spell) or not(self.casting.spell == spell_label)
 
-	
 	return cd_ready and usable and 
 		( (not_being_cast and not_recently_cast) or (switched_target and not(is_cd_spell) ) )
 end 

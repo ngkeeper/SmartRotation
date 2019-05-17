@@ -41,6 +41,7 @@ function createPlayer(currentPlayer, enabled)
 		if SRCONFIG then 
 			player:setSize(SRCONFIG.size)
 			player:setPosition(SRCONFIG.x, SRCONFIG.y)
+			player:trackFocus(SRCONFIG.focus)
 		else
 			SRCONFIG = {}
 			SRCONFIG.size = player:getSize()
@@ -144,6 +145,7 @@ SlashCmdList.SRONOFF = function(msg)
 		end
 		if args[1] == "focus" then 
 			SRCONFIG.focus = not SRCONFIG.focus
+			player: trackFocus(SRCONFIG.focus)
 			if SRCONFIG.focus then 
 				print("SR: Focus module enabled. A yellow icon indicates the spell to be casted on your focus. ")
 			else

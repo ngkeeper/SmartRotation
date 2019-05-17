@@ -139,6 +139,9 @@ end
 function PlayerRotation: getPosition()
 	return self.anchor_x, self.anchor_y
 end
+function PlayerRotation: trackFocus(focus)
+
+end
 function PlayerRotation: refreshUI()
 	self.button: SetSize(self.size,self.size)
 	self.button: SetPoint("CENTER", self.anchor_x, self.anchor_y)

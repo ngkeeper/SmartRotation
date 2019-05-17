@@ -12,6 +12,7 @@ setmetatable(CleaveLog2, {
 function CleaveLog2: _new(spells)
 	self:reset()
 	self.timeout = 6
+	self.melee = false
 	self.nearby_enabled = true
 	self.cleave_spells = spells
 	self.melee_range_item = 32321
@@ -23,7 +24,7 @@ end
 
 function CleaveLog2: targets(override)
 	local hit = self:targetsHit() or 0
-	local nearby = self:targetsNearby() or 0
+	local nearby = self.melee and self:targetsNearby() or 0
 	local aggro = self:targetsAggro() or 0
 	local low_health = self:targetsLowHealth() or 0
 	
@@ -50,6 +51,11 @@ end
 
 function CleaveLog2: targetsLowHealth()
 	return self.low_health
+end
+
+function CleaveLog2: setMelee(melee)
+	if type(melee) == "nil" then melee = false end
+	self.melee = melee
 end
 
 function CleaveLog2: setTimeout(timeout)
@@ -108,6 +114,7 @@ function CleaveLog2: update()
 		-- print(tostring(i).." "..tostring(floor(time() - self.guid_timestamp[i])).." "..tostring(self.guid[i]))
 	-- end
 end
+
 function CleaveLog2: temporaryDisable(duration, flag)
 	
 	if flag then 
@@ -127,9 +134,11 @@ function CleaveLog2: temporaryDisable(duration, flag)
 		self.temporary_disabled_flag = flag
 	end
 end
+
 function CleaveLog2: disabled()
 	return self.temporary_disabled
 end
+
 function CleaveLog2: scanNameplates()
 	local nearby = 0
 	local aggro = 0
@@ -254,11 +263,11 @@ function CleaveLog2: updateCombat()
 		--printTable(self.enemies_tanked)
 	end
 	
-	if not(source_name == player_name) or not(message == "SPELL_DAMAGE") then 
+	if not(source_name == player_name) or (not(message == "SPELL_DAMAGE") and not(message == "SPELL_AURA_APPLIED")) then 
 		return nil 
 	end
 	
-	--print(spell_name.." "..tostring(spell_id).." "..tostring(dest_GUID))
+	--print(spell_name, spell_id, message)
 	
     local is_relevant_spell = false
 	
