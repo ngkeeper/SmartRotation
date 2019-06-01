@@ -420,7 +420,7 @@ function DruidFeral:updateAllActions()
 														var.dot.rip.refreshable, var.ttk > 8, 
 														(var.targets_high_health <= 1) or not var.talent.primal_wrath })
 	self:updateAction(act.finishers.rip2, 			  {	var.talent.sabertooth, 
-														var.dot.rip.refreshable, var.ttk > 8, 
+														not var.dot.rip.up, var.ttk > 8, 
 														(var.targets_high_health <= 1) or not var.talent.primal_wrath, 
 														var.targets_high_health > 1 or 
 														(var.buff.bloodtalons.up or not var.talent.bloodtalons ) and 
@@ -428,7 +428,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.finishers.rip3, 			  {	var.talent.sabertooth, 
 														var.dot.rip.remain < 20 or var.buff.tigers_fury.up, var.ttk > 8, 
 														(var.targets_high_health <= 1) or not var.talent.primal_wrath, 
-														var.new_multiplier_rip > var.multiplier.rip, 
+														var.new_multiplier_rip > var.multiplier.rip * 1.1, 
 														(var.buff.bloodtalons.up or not var.talent.bloodtalons ) })
 	self:updateAction(act.finishers.savage_roar2, 		var.buff.savage_roar.remain < 12)
 	self:updateAction(act.finishers.maim, 				var.buff.iron_jaws.up)
