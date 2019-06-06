@@ -3,7 +3,7 @@ A wow add-on to display optimal damage rotation.
 
 **Command line options:** \
 /sr: show/hide addon \
-/sr size x: set size \
+/sr size x: set size, default 50 \
 /sr pos x y: set position, 0 0 for center
 
 SmartRotation is a minimalist dps rotation addon. \
