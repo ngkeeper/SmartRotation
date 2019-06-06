@@ -16,4 +16,4 @@ Balance Druid \
 Feral Druid \
 Shadow Priest (deprecated) \
 Havoc Demon Hunter (deprecated) \
-Retribution Paladin (deprecated) \
+Retribution Paladin (deprecated) 
