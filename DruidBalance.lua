@@ -372,8 +372,11 @@ function DruidBalance:nextSpell()
 	local cooldown 		= self:runActionList(self.actions.cooldowns)
 	local spender 		= self:runActionList(self.actions.spenders)
 	local dot 			= self:runActionList(self.actions.dots)
-	local dot_focus 	= self.focus and self:runActionList(self.actions.dots_focus)
+	local dot_focus		= self:runActionList(self.actions.dots_focus)
 	local generator 	= self:runActionList(self.actions.generators)
+	
+	local dot_focus_in_range = IsSpellInRange( GetSpellInfo(dot_focus or 93402), "focus") == 1 
+	dot_focus = self.focus and dot_focus_in_range and dot_focus
 	
 	-- The "misc" action list consists an unconditional sunfire action
 	-- to detect if player can cast spells.

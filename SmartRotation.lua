@@ -227,7 +227,7 @@ f:SetScript("OnUpdate", function(self, ...)
 		
 		last_refresh = timestamp
 		if player then 
-			local toDisable = UnitInVehicle("player") or UnitOnTaxi("player")
+			local toDisable = UnitInVehicle("player") or UnitOnTaxi("player") or C_PetBattles.IsInBattle()
 			if toDisable and player: isEnabled() then
 				player: disable()
 			end
@@ -235,8 +235,10 @@ f:SetScript("OnUpdate", function(self, ...)
 				player: enable()
 			end
 			
-			player: update()
-			player: nextSpell()
+			if player: isEnabled() then 
+				player: update()
+				player: nextSpell()
+			end
 		end
 	end
 end)

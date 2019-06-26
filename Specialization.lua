@@ -341,14 +341,14 @@ function Specialization: refreshUI()
 		v.UIFrame: SetHeight(v.size * self.ui_ratio)
 		v.UIFrame: SetPoint(v.anchor, "UIParent", "CENTER", 
 							self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
-		v.UIFrame:SetBackdropColor(unpack(v.backdrop_color))
+		v.UIFrame:SetBackdropColor(unpack(v.backdrop_color or {0, 0, 0, 1}))
 		
 		v.UITexture:SetTexture(v.texture, true)
-		v.UITexture:SetVertexColor(unpack(v.color))
+		v.UITexture:SetVertexColor(unpack(v.color or {1, 1, 1, 1}))
 		
 		v.UICd:SetDrawEdge(v.cooldown_edge)
 		v.UICd:SetReverse(v.cooldown_reverse)
-		v.UICd:SetSwipeColor(unpack(v.cooldown_color))
+		v.UICd:SetSwipeColor(unpack(v.cooldown_color or {0, 0, 0, 0.75}))
 		
 		if v.desaturate then 
 			v.UITexture:SetDesaturated(1)

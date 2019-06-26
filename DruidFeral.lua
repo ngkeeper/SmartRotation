@@ -209,6 +209,8 @@ function DruidFeral:updateVariables()
 	var.haste = UnitSpellHaste("player")
 	var.energy = math.min(var.energy_max, var.energy + 10 * ( 1 + var.haste/100) * var.dt)
 	
+	var.combat = UnitAffectingCombat("player")
+	
 	var.talent = var.talent or {}
 	var.talent.predator 			= self.talent[1] == 1
 	var.talent.sabertooth 			= self.talent[1] == 2
@@ -379,21 +381,21 @@ function DruidFeral:updateAllActions()
 	local act = self.actions
 	
 	-- main / pre-combat action list
-	self:updateAction(act.main.prowl, 				  {	not var.buff.prowl.up, not var.buff.incarnation.up })
+	self:updateAction(act.main.prowl, 				  {	not var.buff.prowl.up, not var.buff.incarnation.up, not var.combat })
 	self:updateAction(act.main.cat_form, 				not var.buff.cat_form.up)
 	self:updateAction(act.main.rake, 				  {	var.buff.prowl.up or var.buff.shadowmeld.up, var.targets < 8 })
 	self:updateAction(act.main.ferocious_bite, 		  {	not var.disable_finisher, var.cp >= 1, var.dot.rip.up, 
 														(var.dot.rip.remain or 0) < 3, var.ttk > 10, var.talent.sabertooth })
 	self:updateAction(act.main.regrowth, 			  {	(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
 														not var.buff.bloodtalons.up, 
-														not var.buff.incarnation.up or var.dot.rip.remain < 8 })
+														not var.buff.incarnation.up or (var.dot.rip.remain or 0) < 8 })
 	self:updateAction(act.main.rip, 				  { var.talent.sabertooth, var.cp > 0, 
 														not var.disable_finisher, not var.dot.rip.up,
 														var.buff.bloodtalons.up or not var.talent.bloodtalons, 
-														var.buff.tigers_fury.up or var.cooldown.tigers_fury.remain > 8 })
+														var.buff.tigers_fury.up or (var.cooldown.tigers_fury.remain or 0) > 8 })
 	-- cooldown action list		
 	self:updateAction(act.cooldowns.berserk, 		  {	var.energy > 30, 
-														var.cooldown.tigers_fury.remain > 5 or var.buff.tigers_fury.up })
+														(var.cooldown.tigers_fury.remain or 0) > 5 or var.buff.tigers_fury.up })
 	self:updateAction(act.cooldowns.tigers_fury, 	  { var.energy_max - var.energy > ( var.buff.tigers_fury.up and 60 or 50 ), 
 														not act.main.regrowth.triggered, 
 														not act.generators.regrowth.triggered, not act.generators.regrowth2.triggered })
@@ -401,11 +403,11 @@ function DruidFeral:updateAllActions()
 														var.buff.bloodtalons.up, var.talent.sabertooth })
 	self:updateAction(act.cooldowns.vigor, _,		    var.buff.vigor_engaged.stack == 6 and var.cooldown.vigor.up and var.ttk > 0 )
 	self:updateAction(act.cooldowns.feral_frenzy, 		var.cp == 0)
-	self:updateAction(act.cooldowns.incarnation, 	  {	var.energy > 30, var.cooldown.tigers_fury.remain > 15 or var.buff.tigers_fury.up })
+	self:updateAction(act.cooldowns.incarnation, 	  {	var.energy > 30, (var.cooldown.tigers_fury.remain or 0) > 15 or var.buff.tigers_fury.up })
 	self:updateAction(act.cooldowns.shadowmeld, 	  {	var.cp < 5, var.energy >= 35, var.multiplier.rip < 2.1, 
 														var.buff.tigers_fury.up, 
 														(var.buff.bloodtalons.up or not var.talent.bloodtalons), 
-														(not var.talent.incarnation or var.cooldown.incarnation.remain > 18), 
+														(not var.talent.incarnation or (var.cooldown.incarnation.remain or 0) > 18), 
 														not var.buff.incarnation.up })
 
 													
@@ -515,7 +517,7 @@ function DruidFeral:nextSpell()
 	if cooldowns == 165572 then 	-- 165572 is the itemId of VIGOR, 133870 is the texture 
 		self:updateIcon(self.icon_right, _, _, 133870, _, {0, 1, 0, 1})
 	elseif cooldowns and cooldowns ~= 102543 and cooldowns ~= 106951 and cooldowns ~= 5217 then 
-		self:updateIcon(self.icon_right, cooldowns, cooldowns, _, {0, 1, 0, 1})
+		self:updateIcon(self.icon_right, cooldowns, cooldowns, _, _, {0, 1, 0, 1})
 	elseif var.buff.tigers_fury.up then 
 		self:updateIcon(self.icon_right, 5217)
 		self:iconSetBuffAnimation(self.icon_right, 5217)
