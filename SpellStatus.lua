@@ -626,6 +626,11 @@ function SpellStatus: getGcd()
 	return self.gcd
 end
 
+function SpellStatus: gcdSpell()
+	return self.spells.gcd
+end
+
+
 function SpellStatus: timeNextSpell()	-- time to next 
 	return self.next_spell_time
 end

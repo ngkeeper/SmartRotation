@@ -30,6 +30,8 @@ function Specialization: _new(spells)
 	self.ui_ratio = 1
 	
 	self.icon = self:createIcon(nil, self.size, 0, 0)
+	self:createAnimation(self.icon)
+	
 	self.text = self:createText(self.icon, 16, 0, 40)
 	self.text2 = self:createText(self.icon, 16, 0, -40)
 	
@@ -71,17 +73,25 @@ function Specialization: isEnabled()
 end
 
 function Specialization: enable()
-	for _, v in ipairs(self.icons) do
-		v.UIFrame: Show()
-	end
+	self:show()
 	self.enabled = true
 end
 
 function Specialization: disable()
+	self:hide()
+	self.enabled = false
+end
+
+function Specialization: show()
+	for _, v in ipairs(self.icons) do
+		v.UIFrame: Show()
+	end
+end
+
+function Specialization: hide()
 	for _, v in ipairs(self.icons) do
 		v.UIFrame: Hide()
 	end
-	self.enabled = false
 end
 
 function Specialization: trackFocus(focus)
@@ -178,6 +188,22 @@ function Specialization: createIcon(texture, size, x, y, anchor, strata)
 	return #self.icons
 end
 
+function Specialization: createAnimation(icon_id, animation, duration)
+	icon_id = icon_id or self.icon
+	animation = animation or "Scale"
+	duration = duration or 1
+	
+	local icon = self.icons[icon_id]
+	icon.UIAnimationGroup = icon.UIFrame:CreateAnimationGroup()
+	icon.UIAnimation = icon.UIAnimationGroup:CreateAnimation(animation)
+	if animation == "Scale" then 
+		icon.UIAnimation:SetScale(0.92, 0.92)
+	end
+	icon.UIAnimation:SetDuration(0.2)
+    icon.UIAnimation:SetSmoothing("OUT")
+	
+end
+
 function Specialization: createTexture(icon, path)
 	icon = icon or self.icon
 	local texture = self.icons[icon].UIFrame:CreateTexture(nil, "Overlay")
@@ -231,6 +257,20 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 	
 	if not spell then 
 		self:iconSetCooldown(icon_id, 0, 0)
+	end
+	
+	if icon_id == self.icon then 
+		local gcd_spell = self.spells:gcdSpell()
+		if (gcd_spell or 0) > 0 then 
+			local start, duration = GetSpellCooldown(self.spells:gcdSpell())
+			if duration > 0 and 
+			not self.icons[self.icon].UIAnimationGroup:IsPlaying() 
+			and (start > (self.icons[self.icon].last_gcd_start or 0)) then 
+				self.icons[self.icon].UIAnimationGroup:Restart() 
+				self.icons[self.icon].last_gcd_start = start
+				--self.icons[self.icon].UIAnimationGroup:Play() 
+			end
+		end 
 	end
 end
 
@@ -348,6 +388,7 @@ function Specialization: refreshUI()
 		
 		v.UICd:SetDrawEdge(v.cooldown_edge)
 		v.UICd:SetReverse(v.cooldown_reverse)
+		v.UICd:SetDrawBling(false)
 		v.UICd:SetSwipeColor(unpack(v.cooldown_color or {0, 0, 0, 0.75}))
 		
 		if v.desaturate then 

@@ -336,6 +336,7 @@ function MageFrost: nextSpell()
 		self:updateIcon(self.icon_freeze, nil)
 		self:updateIcon(self.icon_icicles, nil)
 		self:updateIcon(self.icon_icy_veins, nil)
+		self:updateIcon(self.icon_blizzard, nil)
 	end
 	--print(main)
 	local spell = main or ( targets >= 4 ) and aoe or single

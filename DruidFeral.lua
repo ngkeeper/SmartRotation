@@ -499,6 +499,7 @@ function DruidFeral:nextSpell()
 	local can_use_spells = self:runActionList(self.actions.misc)
 	if not can_use_spells then 	
 		self:updateIcon(_, nil)
+		self:updateIcon(icon_tigers_fury_small, nil)
 		self:updateIcon(self.icon_left, nil)
 		self:updateIcon(self.icon_right, nil)
 		return
@@ -537,8 +538,10 @@ function DruidFeral:nextSpell()
 		self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc)
 	end
 	
-	--print(var.cooldown.tigers_fury.up and spell == generators )
-	if spell and spell ~= 8936 and 
+	-- Display the small tiger fury icon, if the current main icon is
+	-- brutal slash, thrash, swipe, rake, shred; primal wrath, rip, ferocious bite
+	if (spell == 202028 or spell == 106830 or spell == 106785 or spell == 1822 or spell == 5221 or 
+		spell == 285381 or spell == 1079 or spell == 22568) and 
 		(( var.talent.predator and 
 		((var.targets_low_health > 0) or (var.ttk < 6 and var.ttk > 0 )) and 
 		var.cooldown.tigers_fury.up and ( spell == generators or spell == finishers) or 
