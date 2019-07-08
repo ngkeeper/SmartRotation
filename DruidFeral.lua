@@ -532,8 +532,8 @@ function DruidFeral:nextSpell()
 	if var.buff.ca_inc.up then 
 		self:updateIcon(self.icon_left, id_ca_inc)
 		self:iconSetBuffAnimation(self.icon_left, id_ca_inc)
-	elseif cooldowns == 102543 or cooldowns == 106951 then 
-		self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc, _, _, {0, 1, 0, 1})
+	-- elseif cooldowns == 102543 or cooldowns == 106951 then 
+		-- self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc, _, _, {0, 1, 0, 1})
 	else
 		self:updateIcon(self.icon_left, id_ca_inc, id_ca_inc)
 	end

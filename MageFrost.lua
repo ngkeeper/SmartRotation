@@ -52,6 +52,7 @@ function MageFrost:_new()
 						116011, 	--"Rune of Power"
 						33395,		--"Freeze (Water Elemental)"
 						122, 		--"Frost Nova"
+						295373,		--"Concentrated Flame"
 					  }
 						  
 	-- spells that cause cleave damage (and use them as aoe indicators)
@@ -113,6 +114,7 @@ function MageFrost:createActions()
 	act.aoe.flurry 				= self:newAction(44614, act.aoe)
 	act.aoe.flurry2 			= self:newAction(44614, act.aoe)
 	act.aoe.ice_lance 			= self:newAction(30455, act.aoe)
+	act.aoe.concentrated_flame 	= self:newAction(295373, act.single)
 	act.aoe.ebonbolt 			= self:newAction(257537, act.aoe)
 	act.aoe.glacial_spike 		= self:newAction(199786, act.aoe)
 	act.aoe.cone_of_cold 		= self:newAction(120, act.aoe)
@@ -129,6 +131,7 @@ function MageFrost:createActions()
 	act.single.blizzard 		= self:newAction(190356, act.single)
 	act.single.blizzard2 		= self:newAction(190356, act.single)
 	act.single.ice_lance 		= self:newAction(30455, act.single)
+	act.single.concentrated_flame = self:newAction(295373, act.single)
 	act.single.ebonbolt 		= self:newAction(257537, act.single)
 	act.single.blizzard3 		= self:newAction(190356, act.single)
 	act.single.glacial_spike 	= self:newAction(199786, act.single)
@@ -274,6 +277,7 @@ function MageFrost: updateAllActions()
 												var.casting.glacial_spike or
 												var.buff.brain_freeze.remain < var.time_next_gs } )
 	self:updateAction(act.aoe.ice_lance, 		var.buff.fingers_of_frost.up)
+	self:updateAction(act.aoe.concentrated_flame)
 	self:updateAction(act.aoe.ebonbolt,   	  {	not var.talent.glacial_spike or var.buff.icicles.stack == 5, 
 												not var.buff.brain_freeze.up, var.ttk_effective > var.time_next_gs + var.gcd * 2 } )
 	self:updateAction(act.aoe.glacial_spike, _, var.gs_condition)	-- 3rd parameter for override
@@ -296,6 +300,7 @@ function MageFrost: updateAllActions()
 	self:updateAction(act.single.blizzard2,   {	var.targets > 1 and 
 												var.buff.freezing_rain.up and var.buff.fingers_of_frost.stack < 2 } )
 	self:updateAction(act.single.ice_lance, 	var.buff.fingers_of_frost.up)
+	self:updateAction(act.single.concentrated_flame)
 	self:updateAction(act.single.ebonbolt, 	  {	not var.talent.glacial_spike or var.buff.icicles.stack == 5, 
 												not var.buff.brain_freeze.up, var.ttk_effective > var.time_next_gs + var.gcd * 2 } )
 	self:updateAction(act.single.blizzard3,   {	var.targets > 1, var.buff.freezing_rain.up } )
