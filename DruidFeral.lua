@@ -389,7 +389,7 @@ function DruidFeral:updateAllActions()
 	self:updateAction(act.main.regrowth, 			  {	(var.cp == 5) , var.buff.predatory_swiftness.up, var.talent.bloodtalons, 
 														not var.buff.bloodtalons.up, 
 														not var.buff.incarnation.up or (var.dot.rip.remain or 0) < 8 })
-	self:updateAction(act.main.rip, 				  { var.talent.sabertooth, var.cp > 0, 
+	self:updateAction(act.main.rip, 				  { var.talent.sabertooth, var.cp > 0, var.targets < 2, var.ttk > 8, 
 														not var.disable_finisher, not var.dot.rip.up,
 														var.buff.bloodtalons.up or not var.talent.bloodtalons, 
 														var.buff.tigers_fury.up or (var.cooldown.tigers_fury.remain or 0) > 8 })

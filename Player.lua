@@ -13,7 +13,7 @@ function Player: _new()
 	self.azerite = self:getAzeriteInfo()
 	local _, ilevel = GetAverageItemLevel()
 	-- for time-to-kill estimation, use lower dps if not sure
-	self.one_man_dps = 400 * math.exp(0.01 * ilevel) * 0.8 -- f(...) is from simc estimation, 0.7 is an estimation factor
+	self.one_man_dps = 360 * math.exp(0.011 * ilevel) * 0.8 -- f(...) is from simc estimation, 0.8 is an estimation factor
 	self.team_dps = self.one_man_dps
 end
 

@@ -2,6 +2,7 @@ SR_DEBUG = 0
 DEBUG = 0
 
 local refresh = 10	-- refresh rate, Hz
+local reload_timer = 0
 
 -- player object creation function
 function createPlayer(currentPlayer, enabled)
@@ -171,12 +172,12 @@ end)
 local fUpdate = CreateFrame("Frame")
 fUpdate: RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 fUpdate: RegisterEvent("PLAYER_TALENT_UPDATE")
+fUpdate: RegisterEvent("AZERITE_ESSENCE_UPDATE")
 --fUpdate: RegisterEvent("UPDATE_ALL_UI_WIDGETS")
 fUpdate: SetScript("OnEvent", function(self, event, ...)
-	player = createPlayer(player, enabled)
-	if player then
-		player: updateTalent()
-	end
+	-- There's some lag between AZERITE_ESSENCE_UPDATE and SPELLS_UPDATE
+	-- However, can't register SPELLS_UPDATE as it procs too often
+	reload_timer = GetTime() + 0.2
 end)
 
 
@@ -224,7 +225,10 @@ f:SetScript("OnUpdate", function(self, ...)
 		-- for development use only
 		
 		---------------------------
-		
+		if reload_timer > 0 and timestamp > reload_timer then
+			player = createPlayer(player, enabled)
+			reload_timer = 0
+		end
 		last_refresh = timestamp
 		if player then 
 			local toDisable = UnitInVehicle("player") or UnitOnTaxi("player") or C_PetBattles.IsInBattle()
@@ -237,7 +241,8 @@ f:SetScript("OnUpdate", function(self, ...)
 			
 			if player: isEnabled() then 
 				player: update()
-				player: nextSpell()
+				if player.rotation then player: rotation() end
+				if player.nextSpell then player: nextSpell() end
 			end
 		end
 	end

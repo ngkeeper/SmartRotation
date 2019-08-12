@@ -12,6 +12,25 @@ setmetatable(Specialization, {
 function Specialization: _new(spells)
 	self.player = Player()
 	self.cleave = CleaveLog2(spells.cleave)
+	
+	local essence = C_AzeriteEssence.GetMilestoneSpell(115)
+	-- GetMilestoneSpell() returns a spell id that has the same name with the true spell id
+	-- GetSpellInfo(essence) returns the name of the spell, and 
+	-- GetSpellInfo() again to get the true spell id
+	essence = select(7, GetSpellInfo(GetSpellInfo(essence)))
+	
+	if ( essence or 0 ) > 0 then 
+		table.insert(spells.cd, essence)
+		self.essence = essence
+	end
+	-- for i, v in pairs(C_AzeriteEssence) do
+		-- print(i)
+	-- end
+	-- for i, v in pairs(C_AzeriteItem) do
+		-- print(i)
+	-- end
+	
+	
 	self.spells = SpellStatus(spells)
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
@@ -45,7 +64,7 @@ function Specialization: update()
 	
 	local str1 = ""
 	local str2 = ""
-	if SR_DEBUG > 1 then 
+	if SR_DEBUG > 2 then 
 		str1 = tostring(self.cleave:targets(true)) -- .." "..
 			   --tostring(self.cleave:targetsLowHealth())
 		local ttk, dps = self.player:timeToKill()
@@ -206,10 +225,11 @@ end
 
 function Specialization: createTexture(icon, path)
 	icon = icon or self.icon
+	local offset = 8 * self.icons[icon].size / 50
 	local texture = self.icons[icon].UIFrame:CreateTexture(nil, "Overlay")
 	texture:SetTexture(path)
-	texture:SetPoint("TOPLEFT", self.icons[icon].UIFrame, "TOPLEFT", 8, -8)
-	texture:SetPoint("BOTTOMRIGHT", self.icons[icon].UIFrame, "BOTTOMRIGHT", -8, 8)
+	texture:SetPoint("TOPLEFT", self.icons[icon].UIFrame, "TOPLEFT", offset, -offset)
+	texture:SetPoint("BOTTOMRIGHT", self.icons[icon].UIFrame, "BOTTOMRIGHT", -offset, offset)
 	texture:SetVertexColor(1,1,1,1)
 	texture:Show()
 	return texture
@@ -221,8 +241,8 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 	icon = self.icons[icon_id]
 	texture = texture or GetSpellTexture(spell)
 	
-	icon.color = icon_color or {1, 1, 1, 1}
-	icon.backdrop_color = border_color or {0, 0, 0, 1}
+	icon.color = ( type(icon_color) == "table" ) and icon_color or {1, 1, 1, 1}
+	icon.backdrop_color = ( type(border_color) == "table" ) and border_color or {0, 0, 0, 1}
 	
 	if not texture then 
 		icon.show = false
@@ -350,6 +370,39 @@ function Specialization: iconTexture(icon, texture)
 	end
 end
 
+function Specialization: iconTextureResize(icon, ratio_x, ratio_y)
+	if self.icons[icon] then 
+		local dx = ratio_x / 2
+		local dy = ratio_y / 2
+		self.icons[icon].UITexture:SetTexCoord(dx, 1 - dx, dy, 1 - dy)
+	end
+end
+
+function Specialization: iconResize(icon, width, height)
+	if width and height and self.icons[icon] then 
+		self.icons[icon].width = width
+		self.icons[icon].height = height
+	end
+end
+
+function Specialization: iconMirrorX(icon)
+	if self.icons[icon] then 
+		self.icons[icon].UITexture:SetTexCoord(0, 1, 1, 0)
+	end
+end
+
+function Specialization: iconMirrorY(icon)
+	if self.icons[icon] then 
+		self.icons[icon].UITexture:SetTexCoord(1, 0, 0, 1)
+	end
+end
+
+function Specialization: iconRotate(icon, angle)
+	if self.icons[icon] then 
+		self.icons[icon].UITexture:SetRotation(angle / 180 * math.pi)
+	end
+end
+
 function Specialization: iconCooldownColor(icon, r, g, b, alpha)
 	if self.icons[icon] then 
 		self.icons[icon].cooldown_color = {r or 0, g or 0, b or 0, alpha or 0.75}
@@ -370,15 +423,29 @@ function Specialization: iconCooldownNumber(icon, number)
 	end
 end
 
+function Specialization: hideAllIcons()
+	for i, v in ipairs(self.icons) do
+		v.UIFrame:Hide()
+	end
+end
+
+function Specialization: showAllIcons()
+	for i, v in ipairs(self.icons) do
+		if v.show then 
+			v.UIFrame:Show()
+		end
+	end
+end
+
 function Specialization: refreshUI()
-	-- self.icon: SetSize(self.size,self.size)
-	-- self.icon: SetPoint("CENTER", self.anchor_x, self.anchor_y)
-	-- self.icon: Show()
-	-- self.text: SetPoint("CENTER", 2 * self.ui_ratio, 40 * self.ui_ratio)
-	
 	for _, v in ipairs(self.icons) do
-		v.UIFrame: SetWidth(v.size * self.ui_ratio)
-		v.UIFrame: SetHeight(v.size * self.ui_ratio)
+		if v.width and v.height then 
+			v.UIFrame: SetWidth(v.width * self.ui_ratio)
+			v.UIFrame: SetHeight(v.height * self.ui_ratio)
+		else
+			v.UIFrame: SetWidth(v.size * self.ui_ratio)
+			v.UIFrame: SetHeight(v.size * self.ui_ratio)
+		end
 		v.UIFrame: SetPoint(v.anchor, "UIParent", "CENTER", 
 							self.anchor_x + v.x * self.ui_ratio, self.anchor_y + v.y * self.ui_ratio)
 		v.UIFrame:SetBackdropColor(unpack(v.backdrop_color or {0, 0, 0, 1}))

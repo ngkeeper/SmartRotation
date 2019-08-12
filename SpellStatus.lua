@@ -228,6 +228,19 @@ function SpellStatus: updateBuff()
 	--self.buffs: printMatrix()
 end
 
+function SpellStatus: unitBuff(buff)
+	for i = 1, 40 do
+        local ub_name, _, ub_stack, _, _, ub_expiration, _, _, _, ub_spell_id = UnitBuff("player", i)
+        if ub_name then
+			--print(ub_name..ub_spell_id)
+			if ( type(buff) == "string" and buff == ub_name ) or ( type(buff) == "number" and buff == ub_spell_id ) then
+				return true, ub_stack
+			end
+        end    
+    end
+	return false, 0
+end
+
 function SpellStatus: updateAllDots()
 	for i = 1, 40 do
 		local unit = "nameplate"..i
