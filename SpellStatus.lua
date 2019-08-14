@@ -51,7 +51,7 @@ function SpellStatus: _new(spells)
 	self.dots_focus: addColumn(self.spells.dot)
 	
 	self.cds = LabeledMatrix()
-	self.cds: addRow({"up", "remain", "charge"})
+	self.cds: addRow({"up", "remain", "charge", "charge_fractional"})
 	self.cds: addColumn(self.spells.cd)
 	
 	self.traced_spells = {}
@@ -357,33 +357,48 @@ function SpellStatus: updateCd()
 			spell = select(1, GetSpellInfo(spell))
 		end
 		
-		
+		local cd_ready, cd_remain
         local cd_start, cd_duration = GetSpellCooldown(spell)
+		local charge, charge_max, charge_start, charge_duration, charge_rate = GetSpellCharges(v)
+		local charge_fractional
+		local dt = self.predict_cd and self.next_spell_time or 0
 		
-		cd_start = cd_start or 0
-		local cd_duration = cd_duration or 0
-        local cd_remain = math.max(0, cd_duration - GetTime() + cd_start)
-		local prediction = self.predict_cd and self.next_spell_time or 0
-        if cd_remain <= math.max(reaction_time + gcd_remain, prediction) then
-            cd_ready = true
-        else
-            cd_ready = false
-        end
-		
-		local charge, max_charge, cd_start1, cd_duration1 = GetSpellCharges(v)
-		if max_charge then 
-			local cd_remain1 = 0 
-			if cd_start1 < 4200000 then 
-				cd_remain1 = math.max(0, cd_duration1 * (max_charge - charge) - GetTime() + cd_start1)
-				cd_remain1 = math.max(0, cd_remain1 - prediction)
-				charge = max_charge - math.ceil(cd_remain1 / cd_duration1)
+		if charge then 	-- If this is a charge spell
+			local charge_current
+			local charge_duration_effective = charge_duration / charge_rate
+			if charge == charge_max then 	
+				charge_current = 0
+			else 
+				charge_current = 1 - ( charge_start + charge_duration_effective - GetTime() ) / charge_duration_effective 
+			end
+			charge_fractional = math.min(charge + charge_current + dt / charge_duration_effective, charge_max)
+			charge = math.floor(charge_fractional)
+			if charge > 0 then 	-- If there are extra charges
+				cd_ready = true
+				cd_remain = 0
+			else	-- If truely on cd
+				cd_ready = false
+				cd_remain = math.max(0, charge_start + charge_duration_effective - GetTime() - dt)
+			end
+			
+			-- if spell == "Fire Blast" then 
+				-- print(string.format("%s %s %.1f %.1f", spell, tostring(cd_ready), cd_remain, charge_fractional))
+			-- end
+		else 
+			cd_remain = math.max(0, ( cd_duration or 0 ) + (cd_start or 0) - GetTime() - dt )
+			if cd_remain + dt <= math.max(reaction_time + gcd_remain, dt) then
+				cd_ready = true
+			else
+				cd_ready = false
 			end
 		end
-		self.cds:update("remain", v, math.max(0, cd_remain - prediction))
+		
+		self.cds:update("remain", v, cd_remain)
 		self.cds:update("up", v, cd_ready)
-		self.cds:update("charge", v, charge)
-		--if spell == "Fury of Elune" then print(gcd_duration) end
+		self.cds:update("charge", v, charge or 0)
+		self.cds:update("charge_fractional", v, charge_fractional or 0)
     end 
+	
 	--print(self.cds:get("up", 228266))
 	--self.cds: printMatrix()
 end
@@ -445,9 +460,10 @@ end
 
 function SpellStatus: cooldown(spell)
 	local cd = {}
-	cd.charge = self.cds: get("charge", spell)
-	cd.remain = self.cds: get("remain", spell)
 	cd.up = self.cds: get("up", spell)
+	cd.remain = self.cds: get("remain", spell)
+	cd.charge = self.cds: get("charge", spell)
+	cd.charge_fractional = self.cds: get("charge_fractional", spell)
 	return cd
 end
 

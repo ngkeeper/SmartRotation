@@ -22,6 +22,7 @@ PlayerRotation.lua
 PriestShadow.lua
 DemonhunterHavoc.lua
 PaladinRetribution.lua
+MageFire.lua
 MageFrost.lua
 DruidBalance.lua
 DruidFeral.lua

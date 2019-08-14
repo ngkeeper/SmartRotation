@@ -15,6 +15,8 @@ function createPlayer(currentPlayer, enabled)
 		player = DemonhunterHavoc()
 	elseif (talent == 70) then -- "Retribution"
 		player = PaladinRetribution()
+	elseif (talent == 63) then -- "Fire"
+		player = MageFire()
 	elseif (talent == 64) then -- "Frost"
 		player = MageFrost()
 	elseif (talent == 102) then -- "Balance"
@@ -192,8 +194,8 @@ f:SetScript("OnEvent", function(self, event, ...)
 	-- print damage spells
 	-- local _, message, _, _, source_name, _, _, _, _, _, _, spell_id, spell_name = CombatLogGetCurrentEventInfo()
 	-- local player_name = UnitName("player")
-	-- if message and source_name == player_name and message == "SPELL_DAMAGE" then 
-		-- print(string.format("%s %d", spell_name, spell_id))
+	-- if message and source_name == player_name then -- and message == "SPELL_DAMAGE" then 
+		-- print(string.format("%s, %s, %d", message, spell_name, spell_id))
 	-- end
 	
 	-- print all buffs

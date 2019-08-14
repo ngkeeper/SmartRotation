@@ -32,6 +32,7 @@ function Specialization: _new(spells)
 	
 	
 	self.spells = SpellStatus(spells)
+	self.gcd_spell = spells.gcd
 	self.rc = LibStub("LibRangeCheck-2.0")	-- range check
 	
 	self.enabled = true
@@ -241,6 +242,12 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 	icon = self.icons[icon_id]
 	texture = texture or GetSpellTexture(spell)
 	
+	local show_gcd = false
+	if cd_spell == "gcd" then
+		cd_spell = self.gcd_spell
+		show_gcd = true
+	end	
+	
 	icon.color = ( type(icon_color) == "table" ) and icon_color or {1, 1, 1, 1}
 	icon.backdrop_color = ( type(border_color) == "table" ) and border_color or {0, 0, 0, 1}
 	
@@ -264,15 +271,40 @@ function Specialization: updateIcon(icon_id, spell, cd_spell, texture, icon_colo
 	end
 	
 	if cd_spell and icon.UICd then 
-		local start, duration = GetSpellCooldown(cd_spell)
-		self:iconCooldownReverse(icon_id, false)
-		self:iconCooldownNumber(icon_id, true)
-		self:iconCooldownColor(icon_id, 0, 0, 0, 0.75)
-		if duration > 1.5 then 
-			self:iconSetCooldown(icon_id, start, duration)
+		local charge, charge_max, start, duration = GetSpellCharges(cd_spell)
+		if charge then 
+			self:iconCooldownReverse(icon_id, false)
+			self:iconCooldownNumber(icon_id, false)
+			if charge == charge_max then 	-- not charging
+				self:iconCooldownEdge(icon_id, false)
+				self:iconCooldownNumber(icon_id, false)
+				self:iconCooldownColor(icon_id, 0, 0, 0, 0)
+			elseif charge > 0 then 	-- charging, but have extra charges
+				self:iconCooldownEdge(icon_id, true)
+				self:iconCooldownNumber(icon_id, false)
+				self:iconCooldownColor(icon_id, 0, 0, 0, 0)
+				self:iconSetCooldown(icon_id, start, duration)
+			else	-- charging, no charges left
+				self:iconCooldownEdge(icon_id, true)
+				self:iconCooldownNumber(icon_id, true)
+				self:iconCooldownColor(icon_id, 0, 0, 0, 0.75)
+				self:iconSetCooldown(icon_id, start, duration)
+			end
+			
 		else
-			self:iconSetCooldown(icon_id, 0, 0)
+			start, duration = GetSpellCooldown(cd_spell)
+			self:iconCooldownReverse(icon_id, false)
+			self:iconCooldownEdge(icon_id, false)
+			self:iconCooldownNumber(icon_id, true)
+			self:iconCooldownColor(icon_id, 0, 0, 0, 0.75)
+			if duration > 1.5 or show_gcd then 
+				self:iconSetCooldown(icon_id, start, duration)
+			else
+				self:iconSetCooldown(icon_id, 0, 0)
+			end
 		end
+	else
+		self:iconSetCooldown(icon_id, 0, 0)
 	end	
 	
 	if not spell then 
@@ -423,6 +455,11 @@ function Specialization: iconCooldownNumber(icon, number)
 	end
 end
 
+function Specialization: iconCooldownEdge(icon, edge)
+	if self.icons[icon] then 
+		self.icons[icon].cooldown_edge = edge
+	end
+end
 function Specialization: hideAllIcons()
 	for i, v in ipairs(self.icons) do
 		v.UIFrame:Hide()
@@ -454,7 +491,7 @@ function Specialization: refreshUI()
 		v.UITexture:SetVertexColor(unpack(v.color or {1, 1, 1, 1}))
 		
 		v.UICd:SetDrawEdge(v.cooldown_edge)
-		v.UICd:SetReverse(v.cooldown_reverse)
+		v.UICd:SetReverse(v.cooldown_reverse) 
 		v.UICd:SetDrawBling(false)
 		v.UICd:SetSwipeColor(unpack(v.cooldown_color or {0, 0, 0, 0.75}))
 		

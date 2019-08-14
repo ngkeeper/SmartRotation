@@ -98,10 +98,21 @@ function Player: isFocusEnemy()
 	return exists and (guid_focus ~= guid_target) and attack and not dead
 end
 
-function Player: timeToKill(unit)
+function Player: unitHealth(unit)
 	local target = unit or "target"
-	local hp_target = UnitHealth(target)
-	if not(UnitCanAttack("player","target")) or not(UnitExists("target")) then hp_target = 0 end
+	local hp = UnitHealth(target) or 0
+	local hp_max = UnitHealthMax(target) or 0
+	local hp_ratio = ( hp_max > 0 ) and ( hp / hp_max ) or 0 
+	if not(UnitCanAttack("player","target")) or not(UnitExists("target")) then 
+		hp = 0 
+		hp_max = 0 
+		hp_ratio = 0 
+	end
+	return hp, hp_max, hp_ratio
+end
+
+function Player: timeToKill(unit)
+	local hp_target = self:unitHealth(unit)
 	local group_size = math.max(1, GetNumGroupMembers())
 	local n_dps = 0
 	if IsInGroup() then 
