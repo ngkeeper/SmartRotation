@@ -298,13 +298,10 @@ function DruidBalance:updateVariables()
 	var.ap_deficit = var.ap_max - var.ap_predict - 
 					( var.talent.shooting_stars and ( var.dot.moonfire.up or var.dot.sunfire.up ) and 4 or 0 ) 
 	
-	var.sf_targets = 4
-	if var.talent.twin_moons and ( var.azerite.arcanic_pulsar or var.talent.starlord ) then 
-		var.sf_targets = var.sf_targets + 1
-	end
-	if not var.azerite.arcanic_pulsar and not var.talent.starlord and var.talent.stellar_drift then 
-		var.sf_targets = var.sf_targets - 1
-	end
+	var.sf_targets = 4 + ( var.azerite.arcanic_pulsar and 1 or 0 )
+					   + ( var.azerite.streaking_stars and var.azerite.arcanic_pulsar and 1 or 0 )
+					   + ( var.talent.starlord and 1 or 0 )
+					   - ( not var.talent.twin_moons and 1 or 0 )
 	
 	var.focus_in_range = IsSpellInRange( GetSpellInfo(93402), "focus") == 1 
 	var.all_dots_up = var.dot.moonfire.up and var.dot.sunfire.up and ( not var.talent.stellar_flare or var.dot.stellar_flare.up or var.casting.stellar_flare)
