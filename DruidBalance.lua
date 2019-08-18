@@ -211,6 +211,7 @@ function DruidBalance:updateVariables()
 	var.talent = var.talent or {}
 	var.talent.natures_balance 		= self.talent[1] == 1
 	var.talent.warrior_of_elune 	= self.talent[1] == 2
+	var.talent.force_of_nature 		= self.talent[1] == 3
 	var.talent.starlord 			= self.talent[5] == 2
 	var.talent.incarnation 			= self.talent[5] == 3
 	var.talent.stellar_drift 		= self.talent[6] == 1
@@ -223,6 +224,8 @@ function DruidBalance:updateVariables()
 	var.cooldown.incarnation 			= self.spells:cooldown(102560)
 	var.cooldown.celestial_alignment 	= self.spells:cooldown(194223)
 	var.cooldown.fury_of_elune 			= self.spells:cooldown(202770)
+	var.cooldown.force_of_nature		= self.spells:cooldown(205636)
+	var.cooldown.warrior_of_elune		= self.spells:cooldown(202425)
 	var.cooldown.essence 				= self.spells:cooldown(self.essence)
 	
 	var.cooldown.ca_inc = var.talent.incarnation and var.cooldown.incarnation or var.cooldown.celestial_alignment
@@ -549,19 +552,22 @@ function DruidBalance:rotation()
 	end
 	
 	if cooldown then 
-		--self:updateIcon(self.icon_cd, cooldown, cooldown)
 		self:updateIcon(self.icon_cd, cooldown, cooldown, nil, nil, {0, 1, 0, 1}) 
 	else 
-		if var.talent.warrior_of_elune then 
-			self:updateIcon(self.icon_cd, 202425, 202425) 
-		elseif var.talent.fury_of_elune then 
+		if var.talent.fury_of_elune and 
+		   var.cooldown.fury_of_elune.remain <= 
+		   ( var.talent.warrior_of_elune and var.cooldown.warrior_of_elune.remain or 
+		     var.talent.force_of_nature and var.cooldown.force_of_nature.remain or 300 ) then 
 			self:updateIcon(self.icon_cd, 202770, 202770) 
-		else 
+		elseif var.talent.warrior_of_elune then 
+			self:updateIcon(self.icon_cd, 202425, 202425) 
+		elseif var.talent.force_of_nature then 
+			self:updateIcon(self.icon_cd, 205636, 205636)
+		else
 			self:updateIcon(self.icon_cd, nil)
 		end
 	end
 	
-	--print(self.icons[self.icon_essence].UICd)
 	if self.essence then 
 		if self.essence == 295840 and var.guardian_of_azeroth_conditions then 
 			self:updateIcon(self.icon_essence, self.essence, self.essence, nil, nil, {0, 1, 0, 1})
