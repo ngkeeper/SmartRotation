@@ -194,11 +194,12 @@ function DruidBalance:updateVariables()
 	
 	var.enemy_focus = self.player:isFocusEnemy()
 	
-	self.cleave:setLowHealthThreshold(select(2, self.player:dps()) * 6)
+	self.cleave:setLowHealthThreshold(select(2, self.player:dps()) * 3)
 	
 	var.targets 			= self.cleave:targets()
 	var.targets_low_health 	= select(5, self.cleave:targets())
 	var.targets_high_health = var.targets - var.targets_low_health
+	var.targets_effective  	= var.targets_high_health + math.floor(var.targets_low_health / 2)
 	
 	var.ttk = self.player:timeToKill()
 	var.ttk_effective = var.ttk * math.min(2, 0.9 + (var.targets == 0 and 0.1 or 0) + var.targets / 10 )
@@ -316,20 +317,21 @@ function DruidBalance:updateVariables()
 							  (var.ap_deficit < 8 or var.recent.starsurge.cast and var.ap_deficit < 48)
 	var.ap_ca_inc			= var.buff.ca_inc.up and var.buff.ca_inc.remain <= 6 --and var.buff.arcanic_pulsar.stack < 4 
 	
-	var.sunfire_conditions 			= ( var.ttk_effective > 6 and var.ap_deficit >= 3 and 
-										not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
+	var.sunfire_ss					= ( not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
 										var.previous_cast.spell_id ~= 164815 or var.casting.spell ) 
+	var.sunfire_conditions 			=   var.ttk_effective > 6 and var.ap_deficit >= 3 
 	
-	var.moonfire_conditions 		= ( var.ttk_effective > 9 and var.ap_deficit >= 3 and 
-										not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
+	var.moonfire_ss					= ( not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
 										var.previous_cast.spell_id ~= 164812 or var.casting.spell ) and 
 									  ( var.targets < ( var.talent.twin_moons and 2 or 1 ) * var.sf_targets )
-	
-	var.stellar_flare_conditions 	= ( var.ttk_effective > 9 and var.ap_deficit >= 8 and 
-										not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
+	var.moonfire_conditions 		=   var.ttk_effective > 9 and var.ap_deficit >= 3 
+									  
+	var.stellar_flare_ss			= (	not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
 										var.previous_cast.spell_id ~= 202347 or var.casting.spell ) and 
 									  ( var.targets < var.sf_targets )
-
+	var.stellar_flare_conditions 	= 	var.ttk_effective > 9 and var.ap_deficit >= 8 
+									  
+	
 	var.lunar_empowerment_stack = select(2, self.spells:unitBuff(164547))
 	var.solar_empowerment_stack = select(2, self.spells:unitBuff(164545))
 	var.arcanic_pulsar_stack = select(2, self.spells:unitBuff(287790))
@@ -365,8 +367,8 @@ function DruidBalance:updateAllActions()
 														var.ap_deficit >= 8 } )
 
 	-- override because "cancel starlord" is not a spell 
-	self:updateAction(act.spenders.starfall,		  {	var.buff.starlord.stack < 3 or var.buff.starlord.remain >= 8, 
-														var.targets >= var.sf_targets, var.ap_predict >= 50 })
+	self:updateAction(act.spenders.starfall,		  {	var.buff.starlord.stack < 3 or var.buff.starlord.remain >= 8, var.ap_predict >= 50, 
+														var.targets_effective >= var.sf_targets })
 	self:updateAction(act.spenders.starsurge, 		  { var.ap_predict >= 40,  var.ap_deficit < 8 })
 	self:updateAction(act.spenders.starsurge2, 		  { var.ap_predict >= 40,  
 														( var.talent.starlord and 
@@ -374,7 +376,7 @@ function DruidBalance:updateAllActions()
 														    var.buff.arcanic_pulsar.stack < 8 ) or 
 														  not var.talent.starlord and 
 														  (var.buff.arcanic_pulsar.stack < 8 or var.buff.ca_inc.up ) ), 
-														var.targets < var.sf_targets,  
+														var.targets_effective < var.sf_targets,  
 														var.buff.lunar_empowerment.stack + var.buff.solar_empowerment.stack < 4,  
 														var.buff.solar_empowerment.stack < 3, var.buff.lunar_empowerment.stack < 3,  
 														not var.azerite.streaking_stars or not var.buff.ca_inc.up or 
@@ -384,17 +386,18 @@ function DruidBalance:updateAllActions()
 	self:updateAction(act.spenders.moonfire,	  	  { var.buff.ca_inc.up, var.buff.ca_inc.remain < var.gcd, 
 														var.azerite.streaking_stars })
 
-	self:updateAction(act.dots.sunfire, 			  { var.dot.sunfire.refreshable , var.sunfire_conditions, 
+	self:updateAction(act.dots.sunfire, 			  { var.dot.sunfire.refreshable , var.sunfire_conditions, var.sunfire_ss, 
 														var.targets > 1 + ( var.talent.twin_moons and 1 or 0) or var.dot.moonfire.up} )
 														--(var.targets - var.count.sunfire.waste >= math.max(1, var.targets * 0.4)), 
 														
-	self:updateAction(act.dots.moonfire, 			  { var.dot.moonfire.refreshable, var.moonfire_conditions } )
-	self:updateAction(act.dots.stellar_flare, 		  { var.dot.stellar_flare.refreshable, var.stellar_flare_conditions } )
+	self:updateAction(act.dots.moonfire, 			  { var.dot.moonfire.refreshable, var.moonfire_conditions, var.moonfire_ss, } )
+	self:updateAction(act.dots.stellar_flare, 		  { var.dot.stellar_flare.refreshable, var.stellar_flare_conditions, var.stellar_flare_ss } )
 	
-	self:updateAction(act.dots_focus.sunfire, 		  { var.enemy_focus, var.dot.focus_sunfire.refreshable, var.sunfire_conditions, 
+	self:updateAction(act.dots_focus.sunfire, 		  { var.enemy_focus, var.dot.focus_sunfire.refreshable, var.sunfire_conditions, var.sunfire_ss, 
 														var.targets > 1 + ( var.talent.twin_moons and 1 or 0) or var.dot.focus_moonfire.up } )
-	self:updateAction(act.dots_focus.moonfire, 		  { var.enemy_focus, var.dot.focus_moonfire.refreshable, var.moonfire_conditions } )
-	self:updateAction(act.dots_focus.stellar_flare,   { var.enemy_focus, var.dot.focus_stellar_flare.refreshable, var.stellar_flare_conditions } )
+	self:updateAction(act.dots_focus.moonfire, 		  { var.enemy_focus, var.dot.focus_moonfire.refreshable, var.moonfire_conditions, var.moonfire_ss } )
+	self:updateAction(act.dots_focus.stellar_flare,   { var.enemy_focus, var.dot.focus_stellar_flare.refreshable, 
+														var.stellar_flare_conditions, var.stellar_flare_ss } )
 	
 	local not_casting_moon = not ( var.casting.new_moon or var.casting.half_moon or var.casting.full_moon )
 	self:updateAction(act.generators.new_moon, 		  {	var.ap_deficit >= 10, not_casting_moon} )
@@ -427,26 +430,26 @@ function DruidBalance:updateAllActions()
 	self:updateAction(act.generators.moonfire,	  	  { var.buff.ca_inc.up, var.buff.ca_inc.remain < 6, 
 														var.azerite.streaking_stars })
 														
-	local dot_on_focus = self.focus and UnitCanAttack("player", "focus")
+	local dot_on_focus = self.focus and UnitCanAttack("player", "focus") and UnitHealth("focus") > 0
 	local least_dot_remain = math.min(var.dot.sunfire.remain, var.dot.moonfire.remain, 
 							dot_on_focus and var.dot.focus_sunfire.remain or 99, dot_on_focus and var.dot.focus_moonfire.remain or 99)
 							
-	self:updateAction(act.move.sunfire, 			  { var.dot.sunfire.refreshable, var.sunfire_conditions, 
+	self:updateAction(act.move.sunfire, 			  { var.dot.sunfire.refreshable, var.sunfire_ss, 
 														var.targets > 1 + ( var.talent.twin_moons and 1 or 0) or var.dot.moonfire.up } )
-	self:updateAction(act.move.moonfire, 			  { var.dot.moonfire.refreshable, var.moonfire_conditions } )
+	self:updateAction(act.move.moonfire, 			  { var.dot.moonfire.refreshable, var.moonfire_ss } )
 	self:updateAction(act.move.sunfire_focus, 		  { var.enemy_focus, var.dot.focus_sunfire.refreshable, 
 														var.targets > 1 + ( var.talent.twin_moons and 1 or 0) or var.dot.focus_moonfire.up, 
-														var.sunfire_conditions, var.focus_in_range, self.focus } )
+														var.sunfire_ss, var.focus_in_range, self.focus } )
 	self:updateAction(act.move.moonfire_focus, 		  { var.enemy_focus, var.dot.focus_moonfire.refreshable, 
-														var.moonfire_conditions, var.focus_in_range, self.focus } )
-	self:updateAction(act.move.sunfire2, 			  { var.dot.sunfire.up, var.dot.sunfire.remain == least_dot_remain, var.sunfire_conditions } )
-	self:updateAction(act.move.moonfire2, 			  { var.dot.moonfire.up, var.dot.moonfire.remain == least_dot_remain, var.moonfire_conditions } )
+														var.moonfire_ss, var.focus_in_range, self.focus } )
+	self:updateAction(act.move.sunfire2, 			  { var.dot.sunfire.up, var.dot.sunfire.remain == least_dot_remain, var.sunfire_ss } )
+	self:updateAction(act.move.moonfire2, 			  { var.dot.moonfire.up, var.dot.moonfire.remain == least_dot_remain, var.moonfire_ss } )
 	self:updateAction(act.move.sunfire_focus2, 		  { var.dot.focus_sunfire.up, var.enemy_focus, var.dot.focus_sunfire.remain == least_dot_remain, 
-														var.sunfire_conditions, var.focus_in_range, self.focus } )
+														var.sunfire_ss, var.focus_in_range, self.focus } )
 	self:updateAction(act.move.moonfire_focus2, 	  { var.dot.focus_moonfire.up, var.enemy_focus, var.dot.focus_moonfire.remain == least_dot_remain, 
-														var.moonfire_conditions, var.focus_in_range, self.focus } )
-	self:updateAction(act.move.sunfire3, 			  	var.sunfire_conditions)
-	self:updateAction(act.move.moonfire3, 			  	var.moonfire_conditions)
+														var.moonfire_ss, var.focus_in_range, self.focus } )
+	self:updateAction(act.move.sunfire3, 			  	var.sunfire_ss)
+	self:updateAction(act.move.moonfire3, 			  	var.moonfire_ss)
 	
 	self:updateAction(act.misc.sunfire)
 end
@@ -602,7 +605,7 @@ function DruidBalance:rotation()
 	
 	-- Turn cleave on/off based on the spells used
 	if var.recent.starsurge.cast and
-		self.cleave:targets(true) >= var.sf_targets  then 
+		var.targets_effective >= var.sf_targets  then 
 		self.cleave:temporaryDisable(8, var.recent.starsurge.time)
 	end
 	if var.recent.starfall.cast then 
